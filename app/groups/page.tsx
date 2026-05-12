@@ -12,7 +12,7 @@ export default function GroupsPage(){
     {id:4,name:'Nutrition Nerds',members:203,desc:'Deep dive into nutrition science and meal planning',icon:'🥗',private:false},
     {id:5,name:'Running Club',members:118,desc:'Casual and competitive runners of all abilities welcome',icon:'🏃',private:false}
   ]
-  const toggle=(id)=>setJoined(j=>j.includes(id)?j.filter(x=>x!==id):[...j,id])
+  const toggle=(id: number)=>setJoined(j=>j.includes(id)?j.filter(x=>x!==id):[...j,id])
   return (
     <div style={{padding:'32px',background:'#f9fafb',minHeight:'100%'}}>
       <h1 style={{fontSize:'24px',fontWeight:'700',marginBottom:'8px'}}>Groups</h1>
