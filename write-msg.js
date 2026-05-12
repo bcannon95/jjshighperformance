@@ -1,0 +1,1 @@
+const fs=require(String.fromCharCode(39)+"fs"+String.fromCharCode(39));fs.writeFileSync(String.fromCharCode(39)+"app/messages/page.tsx"+String.fromCharCode(39),String.fromCharCode(39)+"use client"+String.fromCharCode(39));console.log(String.fromCharCode(39)+"done"+String.fromCharCode(39));
