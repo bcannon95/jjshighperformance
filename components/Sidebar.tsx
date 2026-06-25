@@ -26,7 +26,7 @@ export default function Sidebar() {
 
   return (
     <div className="w-16 bg-gray-900 flex flex-col items-center py-4 gap-2 shrink-0">
-      <div className="w-10 h-10 bg-yellow-400 rounded-lg flex items-center justify-center mb-4">
+      <div className="w-10 h-10 bg-brand rounded-lg flex items-center justify-center mb-4">
         <span className="text-gray-900 font-bold text-lg">J</span>
       </div>
       {navItems.map((item) => {
@@ -41,7 +41,7 @@ export default function Sidebar() {
             title={item.label}
             className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors relative group ${
               isActive
-                ? 'bg-yellow-400 text-gray-900'
+                ? 'bg-brand text-gray-900'
                 : 'text-gray-400 hover:text-white hover:bg-gray-700'
             }`}
           >

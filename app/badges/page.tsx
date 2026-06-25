@@ -15,28 +15,28 @@ export default function BadgesPage(){
     {icon:'🎖️',name:'Elite Athlete',desc:'Reach level 10 fitness score'}
   ]
   return (
-    <div style={{padding:'32px',background:'#f9fafb',minHeight:'100%'}}>
-      <h1 style={{fontSize:'24px',fontWeight:'700',marginBottom:'8px'}}>Badges</h1>
-      <p style={{color:'#6b7280',marginBottom:'32px'}}>You have earned {earned.length} of {earned.length+locked.length} badges</p>
-      <h2 style={{fontSize:'16px',fontWeight:'600',marginBottom:'16px',color:'#111827'}}>Earned Badges</h2>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'16px',marginBottom:'40px'}}>
+    <div className="p-8 bg-jj-neutral dark:bg-gray-950 min-h-full">
+      <h1 className="font-heading text-4xl mb-2 text-gray-900 dark:text-white">Badges</h1>
+      <p className="text-gray-500 dark:text-gray-400 mb-8">You have earned {earned.length} of {earned.length+locked.length} badges</p>
+      <h2 className="font-heading text-2xl mb-4 text-gray-900 dark:text-white">Earned Badges</h2>
+      <div className="grid grid-cols-3 gap-4 mb-10">
         {earned.map((b,i)=>(
-          <div key={i} style={{background:'white',borderRadius:'12px',padding:'24px',textAlign:'center',border:'2px solid #fbbf24',boxShadow:'0 2px 8px rgba(251,191,36,0.15)'}}>
-            <div style={{fontSize:'40px',marginBottom:'12px'}}>{b.icon}</div>
-            <div style={{fontWeight:'700',marginBottom:'6px'}}>{b.name}</div>
-            <div style={{fontSize:'12px',color:'#6b7280',marginBottom:'8px'}}>{b.desc}</div>
-            <div style={{fontSize:'11px',color:'#fbbf24',fontWeight:'600'}}>Earned {b.date}</div>
+          <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center border-2 border-brand" style={{boxShadow:'0 2px 8px rgba(212,222,38,0.15)'}}>
+            <div className="text-4xl mb-3">{b.icon}</div>
+            <div className="font-bold mb-1.5 text-gray-900 dark:text-white">{b.name}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">{b.desc}</div>
+            <div className="text-[11px] text-brand font-semibold">Earned {b.date}</div>
           </div>
         ))}
       </div>
-      <h2 style={{fontSize:'16px',fontWeight:'600',marginBottom:'16px',color:'#111827'}}>Locked Badges</h2>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'16px'}}>
+      <h2 className="font-heading text-2xl mb-4 text-gray-900 dark:text-white">Locked Badges</h2>
+      <div className="grid grid-cols-3 gap-4">
         {locked.map((b,i)=>(
-          <div key={i} style={{background:'white',borderRadius:'12px',padding:'24px',textAlign:'center',border:'1px solid #e5e7eb',opacity:0.6}}>
-            <div style={{fontSize:'40px',marginBottom:'12px',filter:'grayscale(1)'}}>{b.icon}</div>
-            <div style={{fontWeight:'700',marginBottom:'6px'}}>{b.name}</div>
-            <div style={{fontSize:'12px',color:'#6b7280'}}>{b.desc}</div>
-            <div style={{fontSize:'11px',color:'#9ca3af',marginTop:'8px'}}>🔒 Locked</div>
+          <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center border border-jj-grey/30 dark:border-gray-700 opacity-60">
+            <div className="text-4xl mb-3 grayscale">{b.icon}</div>
+            <div className="font-bold mb-1.5 text-gray-900 dark:text-white">{b.name}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">{b.desc}</div>
+            <div className="text-[11px] text-jj-grey dark:text-gray-500 mt-2">🔒 Locked</div>
           </div>
         ))}
       </div>

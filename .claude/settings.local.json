@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p /c/Dev/jjs-app/supabase/migrations)",
+      "Bash(mv /c/Dev/jjs-app/schema.md /c/Dev/jjs-app/supabase/)",
+      "Bash(mv /c/Dev/jjs-app/trainerizeMigration.py /c/Dev/jjs-app/supabase/)",
+      "Bash(ls -la /c/Dev/jjs-app/.env*)",
+      "Bash(pip install:*)",
+      "Bash(python:*)",
+      "Bash(npx next:*)",
+      "Bash(npx tsc:*)",
+      "Bash(ls C:/Dev/jjs-app/*.pdf)",
+      "Bash(python3 -c \":*)",
+      "Bash(pdftotext /tmp/brand.pdf -)"
+    ]
+  }
+}

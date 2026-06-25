@@ -103,10 +103,10 @@ export default function TrainingPage() {
   const [selectedWorkout, setSelectedWorkout] = useState(workouts[2]);
 
   return (
-    <div className="flex h-full bg-gray-50">
-      <div className="w-72 bg-white border-r border-gray-200 flex-shrink-0 flex flex-col">
-        <div className="p-5 border-b border-gray-200">
-          <h2 className="text-base font-semibold text-gray-900">
+    <div className="flex h-full bg-gray-50 dark:bg-gray-950">
+      <div className="w-72 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col">
+        <div className="p-5 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white">
             Training Programs
           </h2>
         </div>
@@ -117,27 +117,27 @@ export default function TrainingPage() {
               onClick={() => setSelectedProgram(program)}
               className={`w-full text-left p-4 rounded-xl border transition-all ${
                 selectedProgram.id === program.id
-                  ? 'border-yellow-400 bg-yellow-50'
-                  : 'border-gray-200 bg-white hover:border-gray-300'
+                  ? 'border-brand bg-brand/10'
+                  : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600'
               }`}
             >
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm font-semibold text-gray-900">
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">
                   {program.name}
                 </span>
                 {program.tag && (
-                  <span className="flex items-center gap-1 text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-medium">
+                  <span className="flex items-center gap-1 text-xs bg-brand/20 text-gray-700 dark:text-gray-900 px-2 py-0.5 rounded-full font-medium">
                     <Tag size={10} />
                     {program.tag}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-gray-500">{program.description}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{program.description}</p>
               <div className="flex gap-3 mt-3">
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-gray-400 dark:text-gray-500">
                   {program.weeks} weeks
                 </span>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-gray-400 dark:text-gray-500">
                   {program.days} days/week
                 </span>
               </div>
@@ -145,7 +145,7 @@ export default function TrainingPage() {
           ))}
         </div>
         <div className="border-t border-gray-200 p-4">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
             Workouts
           </p>
           <div className="space-y-2">
@@ -155,8 +155,8 @@ export default function TrainingPage() {
                 onClick={() => setSelectedWorkout(workout)}
                 className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all ${
                   selectedWorkout.id === workout.id
-                    ? 'bg-gray-900 text-white'
-                    : 'hover:bg-gray-50 text-gray-700'
+                    ? 'bg-gray-900 dark:bg-gray-700 text-white'
+                    : 'hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
                 }`}
               >
                 {workout.completed ? (
@@ -164,7 +164,7 @@ export default function TrainingPage() {
                     size={16}
                     className={
                       selectedWorkout.id === workout.id
-                        ? 'text-yellow-400'
+                        ? 'text-brand'
                         : 'text-green-500'
                     }
                   />
@@ -199,82 +199,82 @@ export default function TrainingPage() {
       <div className="flex-1 overflow-auto">
         {selectedWorkout && (
           <>
-            <div className="bg-white border-b border-gray-200 p-6">
+            <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 p-6">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
                     {selectedWorkout.day}
                   </p>
-                  <h3 className="text-2xl font-bold text-gray-900">
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
                     {selectedWorkout.name}
                   </h3>
                 </div>
-                <button className="flex items-center gap-2 px-5 py-2.5 bg-yellow-400 text-gray-900 rounded-xl font-semibold text-sm hover:bg-yellow-500 transition-colors">
+                <button className="flex items-center gap-2 px-5 py-2.5 bg-brand text-gray-900 rounded-xl font-semibold text-sm hover:bg-brand/80 transition-colors">
                   <Play size={16} fill="currentColor" />
                   Start Workout
                 </button>
               </div>
               <div className="flex gap-6 mt-4">
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Dumbbell size={15} className="text-gray-400" />
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <Dumbbell size={15} className="text-gray-400 dark:text-gray-500" />
                   {selectedWorkout.exercises} exercises
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Clock size={15} className="text-gray-400" />
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <Clock size={15} className="text-gray-400 dark:text-gray-500" />
                   {selectedWorkout.duration}
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Flame size={15} className="text-gray-400" />
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <Flame size={15} className="text-gray-400 dark:text-gray-500" />
                   {selectedWorkout.calories} kcal
                 </div>
               </div>
             </div>
 
             <div className="p-6">
-              <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+              <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4">
                 Exercises
               </h4>
               <div className="space-y-3">
                 {exercises.map((exercise, i) => (
                   <div
                     key={i}
-                    className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4"
+                    className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center gap-4"
                   >
                     <div className="w-10 h-10 rounded-lg bg-gray-900 flex items-center justify-center flex-shrink-0">
-                      <span className="text-yellow-400 font-bold text-sm">
+                      <span className="text-brand font-bold text-sm">
                         {i + 1}
                       </span>
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-semibold text-gray-900">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">
                         {exercise.name}
                       </p>
-                      <p className="text-xs text-gray-500 mt-0.5">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                         {exercise.muscles}
                       </p>
                     </div>
                     <div className="flex gap-6 text-center">
                       <div>
-                        <p className="text-xs text-gray-400 uppercase tracking-wide">
+                        <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide">
                           Sets
                         </p>
-                        <p className="text-sm font-semibold text-gray-900 mt-0.5">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white mt-0.5">
                           {exercise.sets}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-400 uppercase tracking-wide">
+                        <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide">
                           Reps
                         </p>
-                        <p className="text-sm font-semibold text-gray-900 mt-0.5">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white mt-0.5">
                           {exercise.reps}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-400 uppercase tracking-wide">
+                        <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide">
                           Rest
                         </p>
-                        <p className="text-sm font-semibold text-gray-900 mt-0.5">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white mt-0.5">
                           {exercise.rest}
                         </p>
                       </div>

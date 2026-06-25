@@ -1,74 +1,118 @@
 'use client'
-import {useState} from 'react'
-import {Send,Search,ChevronRight} from 'lucide-react'
+import { useState } from 'react'
+import { Send, Search } from 'lucide-react'
 
-export default function MessagesPage(){
-  const [sel,setSel]=useState(0)
-  const [msg,setMsg]=useState('')
-  const threads=[
-    {id:0,name:'Coach Sarah',avatar:'CS',last:'Great job on your workout today!',time:'2m ago',unread:2,msgs:[
-      {from:'coach',text:'Hey Jaimee! How did the workout feel today?',time:'10:30 AM'},
-      {from:'me',text:'It was tough but I pushed through!',time:'10:35 AM'},
-      {from:'coach',text:'Great job on your workout today!',time:'10:40 AM'}
-    ]},
-    {id:1,name:'Trainer Mike',avatar:'TM',last:'Check your meal plan update',time:'1h ago',unread:0,msgs:[
-      {from:'coach',text:'I updated your meal plan for next week.',time:'9:00 AM'},
-      {from:'coach',text:'Check your meal plan update',time:'9:05 AM'}
-    ]},
-    {id:2,name:'Support Team',avatar:'ST',last:'Your query has been resolved',time:'Yesterday',unread:0,msgs:[
-      {from:'coach',text:'Your query has been resolved',time:'Yesterday'}
-    ]}
+export default function MessagesPage() {
+  const [sel, setSel] = useState(0)
+  const [msg, setMsg] = useState('')
+  const threads = [
+    {
+      id: 0, name: 'Coach Sarah', avatar: 'CS', last: 'Great job on your workout today!', time: '2m ago', unread: 2,
+      msgs: [
+        { from: 'coach', text: 'Hey Jaimee! How did the workout feel today?', time: '10:30 AM' },
+        { from: 'me', text: 'It was tough but I pushed through!', time: '10:35 AM' },
+        { from: 'coach', text: 'Great job on your workout today!', time: '10:40 AM' },
+      ],
+    },
+    {
+      id: 1, name: 'Trainer Mike', avatar: 'TM', last: 'Check your meal plan update', time: '1h ago', unread: 0,
+      msgs: [
+        { from: 'coach', text: 'I updated your meal plan for next week.', time: '9:00 AM' },
+        { from: 'coach', text: 'Check your meal plan update', time: '9:05 AM' },
+      ],
+    },
+    {
+      id: 2, name: 'Support Team', avatar: 'ST', last: 'Your query has been resolved', time: 'Yesterday', unread: 0,
+      msgs: [{ from: 'coach', text: 'Your query has been resolved', time: 'Yesterday' }],
+    },
   ]
-  const active=threads[sel]
+  const active = threads[sel]
+
   return (
-    <div style={{display:'flex',height:'100%',background:'#f9fafb'}}>
-      <div style={{width:'300px',background:'white',borderRight:'1px solid #e5e7eb',display:'flex',flexDirection:'column'}}>
-        <div style={{padding:'16px',borderBottom:'1px solid #e5e7eb'}}>
-          <h2 style={{fontSize:'18px',fontWeight:'700',marginBottom:'12px'}}>Messages</h2>
-          <div style={{display:'flex',alignItems:'center',gap:'8px',background:'#f3f4f6',borderRadius:'8px',padding:'8px 12px'}}>
-            <Search size={16} color='#9ca3af' />
-            <input placeholder='Search messages...' style={{border:'none',background:'transparent',outline:'none',fontSize:'14px',width:'100%'}} />
+    <div className="flex h-full bg-jj-neutral dark:bg-gray-950">
+      {/* Thread list */}
+      <div className="w-72 bg-white dark:bg-gray-900 border-r border-jj-grey/40 dark:border-gray-700 flex flex-col shrink-0">
+        <div className="p-4 border-b border-jj-grey/40 dark:border-gray-700">
+          <h2 className="font-heading text-2xl mb-3 text-gray-900 dark:text-white">Messages</h2>
+          <div className="flex items-center gap-2 bg-jj-neutral dark:bg-gray-800 rounded-lg px-3 py-2">
+            <Search size={16} className="text-jj-grey" />
+            <input
+              placeholder="Search messages..."
+              className="border-none bg-transparent outline-none text-sm w-full text-gray-900 dark:text-white placeholder-jj-grey"
+            />
           </div>
         </div>
-        <div style={{overflowY:'auto',flex:'1'}}>
-          {threads.map((t)=>(
-            <button key={t.id} onClick={()=>setSel(t.id)} style={{width:'100%',display:'flex',alignItems:'flex-start',gap:'12px',padding:'14px 16px',border:'none',borderBottom:'1px solid #f3f4f6',cursor:'pointer',background:sel===t.id?'#eff6ff':'white',textAlign:'left'}}>
-              <div style={{width:'42px',height:'42px',borderRadius:'50%',background:'#2563eb',display:'flex',alignItems:'center',justifyContent:'center',color:'white',fontWeight:'700',fontSize:'13px',flexShrink:0}}>{t.avatar}</div>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{display:'flex',justifyContent:'space-between',marginBottom:'4px'}}>
-                  <span style={{fontWeight:'600',fontSize:'14px'}}>{t.name}</span>
-                  <span style={{fontSize:'12px',color:'#6b7280'}}>{t.time}</span>
+        <div className="overflow-y-auto flex-1">
+          {threads.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setSel(t.id)}
+              className={`w-full flex items-start gap-3 px-4 py-3.5 border-b border-jj-grey/20 dark:border-gray-800 text-left transition-colors ${
+                sel === t.id ? 'bg-brand/10 dark:bg-brand/10' : 'hover:bg-jj-neutral dark:hover:bg-gray-800'
+              }`}
+            >
+              <div className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center text-brand font-bold text-[13px] shrink-0">
+                {t.avatar}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between mb-1">
+                  <span className="font-semibold text-sm text-gray-900 dark:text-white">{t.name}</span>
+                  <span className="text-xs text-jj-grey dark:text-gray-500">{t.time}</span>
                 </div>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                  <span style={{fontSize:'13px',color:'#6b7280',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:'160px'}}>{t.last}</span>
-                  {t.unread>0 && <span style={{background:'#2563eb',color:'white',borderRadius:'50%',width:'20px',height:'20px',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'11px',fontWeight:'700'}}>{t.unread}</span>}
+                <div className="flex justify-between items-center">
+                  <span className="text-[13px] text-gray-500 dark:text-gray-400 truncate max-w-[150px]">{t.last}</span>
+                  {t.unread > 0 && (
+                    <span className="bg-brand text-gray-900 rounded-full w-5 h-5 flex items-center justify-center text-[11px] font-bold shrink-0">
+                      {t.unread}
+                    </span>
+                  )}
                 </div>
               </div>
             </button>
           ))}
         </div>
       </div>
-      <div style={{flex:1,display:'flex',flexDirection:'column'}}>
-        <div style={{padding:'16px 20px',borderBottom:'1px solid #e5e7eb',background:'white',display:'flex',alignItems:'center',gap:'12px'}}>
-          <div style={{width:'40px',height:'40px',borderRadius:'50%',background:'#2563eb',display:'flex',alignItems:'center',justifyContent:'center',color:'white',fontWeight:'700'}}>{active.avatar}</div>
+
+      {/* Chat area */}
+      <div className="flex-1 flex flex-col">
+        <div className="px-5 py-4 border-b border-jj-grey/40 dark:border-gray-700 bg-white dark:bg-gray-900 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center text-brand font-bold">
+            {active.avatar}
+          </div>
           <div>
-            <div style={{fontWeight:'600'}}>{active.name}</div>
-            <div style={{fontSize:'12px',color:'#22c55e'}}>Online</div>
+            <div className="font-semibold text-sm text-gray-900 dark:text-white">{active.name}</div>
+            <div className="text-xs text-jj-forest">Online</div>
           </div>
         </div>
-        <div style={{flex:1,overflowY:'auto',padding:'20px',display:'flex',flexDirection:'column',gap:'12px'}}>
-          {active.msgs.map((m,i)=>(
-            <div key={i} style={{display:'flex',justifyContent:m.from==='me'?'flex-end':'flex-start'}}>
-              <div style={{maxWidth:'60%',padding:'10px 14px',borderRadius:m.from==='me'?'16px 16px 4px 16px':'16px 16px 16px 4px',background:m.from==='me'?'#2563eb':'white',color:m.from==='me'?'white':'#111827',border:m.from==='me'?'none':'1px solid #e5e7eb',fontSize:'14px'}}>
+        <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-3">
+          {active.msgs.map((m, i) => (
+            <div key={i} className={`flex ${m.from === 'me' ? 'justify-end' : 'justify-start'}`}>
+              <div
+                className={`max-w-[60%] px-3.5 py-2.5 text-sm ${
+                  m.from === 'me'
+                    ? 'bg-gray-900 text-brand rounded-2xl rounded-br-sm'
+                    : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-jj-grey/30 dark:border-gray-700 rounded-2xl rounded-bl-sm'
+                }`}
+              >
                 <div>{m.text}</div>
-                <div style={{fontSize:'11px',opacity:0.7,marginTop:'4px',textAlign:'right'}}>{m.time}</div>
+                <div className="text-[11px] opacity-70 mt-1 text-right">{m.time}</div>
               </div>
             </div>
           ))}
         </div>
-        <div style={{padding:'16px 20px',borderTop:'1px solid #e5e7eb',background:'white',display:'flex',gap:'10px',alignItems:'center'}}>
-          <input value={msg} onChange={(e)=>setMsg(e.target.value)} placeholder='Type a message...' style={{flex:1,padding:'10px 16px',border:'1px solid #e5e7eb',borderRadius:'24px',outline:'none',fontSize:'14px'}} />
-          <button onClick={()=>setMsg('')} style={{width:'40px',height:'40px',borderRadius:'50%',background:'#2563eb',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}><Send size={18} color='white' /></button>
+        <div className="px-5 py-4 border-t border-jj-grey/40 dark:border-gray-700 bg-white dark:bg-gray-900 flex gap-2.5 items-center">
+          <input
+            value={msg}
+            onChange={(e) => setMsg(e.target.value)}
+            placeholder="Type a message..."
+            className="flex-1 px-4 py-2.5 border border-jj-grey/40 dark:border-gray-600 rounded-full text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-brand placeholder-jj-grey"
+          />
+          <button
+            onClick={() => setMsg('')}
+            className="w-10 h-10 rounded-full bg-gray-900 hover:bg-gray-800 flex items-center justify-center shrink-0"
+          >
+            <Send size={18} color="#d4de26" />
+          </button>
         </div>
       </div>
     </div>
