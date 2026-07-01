@@ -1,23 +1,103 @@
 'use client';
+
 import { useState } from 'react';
-import { User, Lock, ShoppingBag, CreditCard } from 'lucide-react';
+import {
+  User,
+  Ruler,
+  Bell,
+  Video,
+  Lock,
+  Coins,
+  CreditCard,
+  ShoppingBag,
+  Receipt,
+  Pencil,
+} from 'lucide-react';
+
+const SECTIONS = [
+  { id: 'profile', label: 'Profile', Icon: User },
+  { id: 'units', label: 'Units', Icon: Ruler },
+  { id: 'notifications', label: 'Notifications', Icon: Bell },
+  { id: 'exercise-videos', label: 'Exercise Videos', Icon: Video },
+  { id: 'password', label: 'Change Password', Icon: Lock },
+  { id: 'session-credits', label: 'Session Credits', Icon: Coins },
+  { id: 'payment', label: 'Payment Information', Icon: CreditCard },
+  { id: 'purchases', label: 'Purchases', Icon: ShoppingBag },
+  { id: 'transactions', label: 'Transaction History', Icon: Receipt },
+] as const;
+
+type SectionId = typeof SECTIONS[number]['id'];
+
+const PROFILE_FIELDS: { label: string; value: string }[] = [
+  { label: 'Email Address', value: 'jaimee.tarlinton9@gmail.com' },
+  { label: 'Phone Number', value: '0422740389' },
+  { label: 'Location', value: '' },
+  { label: 'Birthdate', value: '2 Oct 1992' },
+  { label: 'Height', value: '183 cm' },
+  { label: 'Sex', value: 'Male' },
+  { label: 'Timezone', value: '(GMT+10:00) Canberra, Melbourne, Sydney' },
+];
+
+const NOTIFICATION_CATEGORIES = [
+  'Group Activities',
+  'Private Messages',
+  'New Comments',
+  'Payment Events',
+  'Trainer updates my account',
+  'Events Scheduled',
+  'Challenge Activities',
+];
+
+const TRANSACTIONS = [
+  {
+    name: '2-Week Extension - Preseason Package',
+    kind: 'Add-on',
+    status: 'Expired',
+    price: '$0.00',
+    note: '(100% discount)',
+    expires: '5 Feb 2026',
+  },
+  {
+    name: '8-Week Performance Foundations In-Season Package',
+    kind: 'Main Product',
+    status: 'Expired',
+    price: '$0.00',
+    note: '(100% discount)',
+    expires: '5 Feb 2026',
+  },
+];
 
 export default function AccountPage() {
-  const [active, setActive] = useState('profile');
-  const sections = [
-    { id: 'profile', label: 'Profile', Icon: User },
-    { id: 'password', label: 'Password', Icon: Lock },
-    { id: 'purchases', label: 'Purchases', Icon: ShoppingBag },
-    { id: 'transactions', label: 'Transactions', Icon: CreditCard },
-  ];
+  const [active, setActive] = useState<SectionId>('profile');
+  const [editingProfile, setEditingProfile] = useState(false);
+
+  // Units
+  const [weightUnit, setWeightUnit] = useState('kg');
+  const [distanceUnit, setDistanceUnit] = useState('kilometers');
+  const [bodyStatsUnit, setBodyStatsUnit] = useState('centimeters');
+
+  // Exercise videos
+  const [videoPref, setVideoPref] = useState('Male first');
+
+  // Notification channels + per-category in-app toggles
+  const [pushEnabled, setPushEnabled] = useState(true);
+  const [emailEnabled, setEmailEnabled] = useState(true);
+  const [categoryPrefs, setCategoryPrefs] = useState<Record<string, boolean>>(
+    () => Object.fromEntries(NOTIFICATION_CATEGORIES.map((c) => [c, true]))
+  );
+
+  function toggleCategory(cat: string) {
+    setCategoryPrefs((prev) => ({ ...prev, [cat]: !prev[cat] }));
+  }
 
   return (
     <div className="flex h-full bg-jj-neutral dark:bg-gray-950">
-      <div className="w-56 bg-white dark:bg-gray-900 border-r border-jj-grey/40 dark:border-gray-700 py-6 shrink-0">
-        <h2 className="font-heading text-2xl px-5 pb-4 text-gray-900 dark:text-white">Account</h2>
-        {sections.map((s) => {
-          const Icon = s.Icon;
+      {/* Sidebar */}
+      <div className="w-60 bg-white dark:bg-gray-900 border-r border-jj-grey/40 dark:border-gray-700 py-6 shrink-0">
+        <h2 className="font-heading text-2xl px-5 pb-4 text-gray-900 dark:text-white">My Account</h2>
+        {SECTIONS.map((s) => {
           const isActive = active === s.id;
+          const Icon = s.Icon;
           return (
             <button
               key={s.id}
@@ -35,42 +115,142 @@ export default function AccountPage() {
         })}
       </div>
 
+      {/* Content */}
       <div className="flex-1 p-8 overflow-y-auto">
+        {/* PROFILE */}
         {active === 'profile' && (
-          <div>
-            <h3 className="font-heading text-2xl mb-5 text-gray-900 dark:text-white">Profile Information</h3>
-            <div className="text-center mb-6">
-              <div className="w-20 h-20 rounded-full bg-gray-900 flex items-center justify-center text-brand text-2xl font-bold mx-auto mb-3">
-                JT
-              </div>
-              <button className="px-4 py-2 border border-jj-grey/40 dark:border-gray-600 rounded-md text-sm text-gray-700 dark:text-gray-300 hover:bg-jj-neutral dark:hover:bg-gray-800">
-                Change Photo
+          <div className="max-w-2xl">
+            <div className="flex justify-end">
+              <button
+                onClick={() => setEditingProfile((v) => !v)}
+                className="flex items-center gap-1.5 px-4 py-1.5 border border-jj-grey/40 dark:border-gray-600 rounded-md text-sm text-gray-700 dark:text-gray-300 hover:bg-jj-neutral dark:hover:bg-gray-800"
+              >
+                <Pencil size={14} />
+                {editingProfile ? 'Cancel' : 'Edit'}
               </button>
             </div>
-            {[
-              ['First Name', 'Jaimee'],
-              ['Last Name', 'Smith'],
-              ['Email', 'jaimee@email.com'],
-              ['Phone', '+61 400 000 000'],
-            ].map(([l, v]) => (
-              <div key={l} className="mb-3.5">
-                <label className="block text-[13px] font-medium mb-1 text-gray-700 dark:text-gray-300">{l}</label>
-                <input
-                  defaultValue={v}
-                  className="w-full px-3 py-2 border border-jj-grey/40 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand"
-                />
+            <div className="text-center mb-8">
+              <div className="w-24 h-24 rounded-full bg-gray-900 flex items-center justify-center text-brand text-3xl font-bold mx-auto mb-3">
+                JT
               </div>
-            ))}
-            <button className="mt-2 px-6 py-2.5 bg-gray-900 text-brand rounded-md text-sm font-semibold hover:bg-gray-800">
-              Save Changes
-            </button>
+              <h3 className="font-heading text-3xl text-gray-900 dark:text-white">Jaimee Tarlinton</h3>
+              {editingProfile && (
+                <button className="mt-3 px-4 py-2 border border-jj-grey/40 dark:border-gray-600 rounded-md text-sm text-gray-700 dark:text-gray-300 hover:bg-jj-neutral dark:hover:bg-gray-800">
+                  Change Photo
+                </button>
+              )}
+            </div>
+            <div className="space-y-5">
+              {PROFILE_FIELDS.map((f) => (
+                <div key={f.label}>
+                  <p className="text-lg text-gray-500 dark:text-gray-400">{f.label}</p>
+                  {editingProfile ? (
+                    <input
+                      defaultValue={f.value}
+                      className="mt-1 w-full px-3 py-2 border border-jj-grey/40 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand"
+                    />
+                  ) : (
+                    <p className="text-gray-400 dark:text-gray-500">{f.value || '\u2014'}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+            {editingProfile && (
+              <button
+                onClick={() => setEditingProfile(false)}
+                className="mt-6 px-6 py-2.5 bg-gray-900 text-brand rounded-md text-sm font-semibold hover:bg-gray-800"
+              >
+                Save Changes
+              </button>
+            )}
           </div>
         )}
 
+        {/* UNITS */}
+        {active === 'units' && (
+          <div className="max-w-lg">
+            <h3 className="font-heading text-2xl mb-6 text-gray-900 dark:text-white">Units</h3>
+            <div className="space-y-5">
+              <div>
+                <label className="block text-sm font-medium mb-1.5 text-gray-700 dark:text-gray-300">How do you wish to enter your weight in?</label>
+                <select value={weightUnit} onChange={(e) => setWeightUnit(e.target.value)} className="w-full px-3 py-2 border border-jj-grey/40 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand">
+                  <option value="kg">kg</option>
+                  <option value="lbs">lbs</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1.5 text-gray-700 dark:text-gray-300">For cardio exercises, how do you wish to enter distance?</label>
+                <select value={distanceUnit} onChange={(e) => setDistanceUnit(e.target.value)} className="w-full px-3 py-2 border border-jj-grey/40 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand">
+                  <option value="kilometers">kilometers</option>
+                  <option value="miles">miles</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1.5 text-gray-700 dark:text-gray-300">How do you wish to enter body stats?</label>
+                <select value={bodyStatsUnit} onChange={(e) => setBodyStatsUnit(e.target.value)} className="w-full px-3 py-2 border border-jj-grey/40 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand">
+                  <option value="centimeters">centimeters</option>
+                  <option value="inches">inches</option>
+                </select>
+              </div>
+            </div>
+            <button className="mt-6 px-6 py-2.5 bg-gray-900 text-brand rounded-md text-sm font-semibold hover:bg-gray-800">Save</button>
+          </div>
+        )}
+
+        {/* NOTIFICATIONS */}
+        {active === 'notifications' && (
+          <div className="max-w-2xl">
+            <h3 className="font-heading text-2xl mb-6 text-gray-900 dark:text-white">Notifications</h3>
+            <div className="space-y-4 mb-8">
+              <label className="flex items-center justify-between p-3 border border-jj-grey/30 dark:border-gray-700 rounded-lg">
+                <div>
+                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Browser Push Notifications</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Send notifications to web and mobile applications.</p>
+                </div>
+                <input type="checkbox" checked={pushEnabled} onChange={() => setPushEnabled((v) => !v)} className="w-5 h-5 accent-brand" />
+              </label>
+              <label className="flex items-center justify-between p-3 border border-jj-grey/30 dark:border-gray-700 rounded-lg">
+                <div>
+                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Email Notifications</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Sent to jaimee.tarlinton9@gmail.com.</p>
+                </div>
+                <input type="checkbox" checked={emailEnabled} onChange={() => setEmailEnabled((v) => !v)} className="w-5 h-5 accent-brand" />
+              </label>
+            </div>
+            <p className="text-sm font-heading tracking-wide uppercase text-jj-grey dark:text-gray-500 mb-2">General Notifications</p>
+            <div className="divide-y divide-jj-grey/15 dark:divide-gray-700 border border-jj-grey/30 dark:border-gray-700 rounded-lg">
+              {NOTIFICATION_CATEGORIES.map((cat) => (
+                <div key={cat} className="flex items-center justify-between px-4 py-3">
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{cat}</span>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">In-app</span>
+                    <input type="checkbox" checked={categoryPrefs[cat]} onChange={() => toggleCategory(cat)} className="w-4 h-4 accent-brand" />
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* EXERCISE VIDEOS */}
+        {active === 'exercise-videos' && (
+          <div className="max-w-lg">
+            <h3 className="font-heading text-2xl mb-6 text-gray-900 dark:text-white">Exercise Videos</h3>
+            <label className="block text-sm font-medium mb-1.5 text-gray-700 dark:text-gray-300">Exercise videos</label>
+            <select value={videoPref} onChange={(e) => setVideoPref(e.target.value)} className="w-full px-3 py-2 border border-jj-grey/40 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand">
+              <option>Male first</option>
+              <option>Female first</option>
+            </select>
+            <button className="mt-6 px-6 py-2.5 bg-gray-900 text-brand rounded-md text-sm font-semibold hover:bg-gray-800">Save</button>
+          </div>
+        )}
+
+        {/* CHANGE PASSWORD */}
         {active === 'password' && (
-          <div>
-            <h3 className="font-heading text-2xl mb-5 text-gray-900 dark:text-white">Change Password</h3>
-            {['Current Password', 'New Password', 'Confirm Password'].map((l) => (
+          <div className="max-w-md">
+            <h3 className="font-heading text-2xl mb-2 text-gray-900 dark:text-white">Change Password</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">To change your password, please provide your current password and your new password.</p>
+            {['Original Password', 'Your new password', 'Confirm new password'].map((l) => (
               <div key={l} className="mb-3.5">
                 <label className="block text-[13px] font-medium mb-1 text-gray-700 dark:text-gray-300">{l}</label>
                 <input
@@ -79,67 +259,87 @@ export default function AccountPage() {
                 />
               </div>
             ))}
-            <button className="mt-2 px-6 py-2.5 bg-gray-900 text-brand rounded-md text-sm font-semibold hover:bg-gray-800">
-              Update Password
-            </button>
+            <button className="mt-2 px-6 py-2.5 bg-gray-900 text-brand rounded-md text-sm font-semibold hover:bg-gray-800">Change Password</button>
           </div>
         )}
 
-        {active === 'purchases' && (
-          <div>
-            <h3 className="font-heading text-2xl mb-5 text-gray-900 dark:text-white">My Purchases</h3>
-            {[
-              { name: '12-Week Transformation', date: 'Jan 15, 2026', price: '$99/mo', status: 'Active' },
-              { name: 'Nutrition Coaching', date: 'Dec 1, 2025', price: '$49/mo', status: 'Active' },
-            ].map((p, i) => (
-              <div
-                key={i}
-                className="flex items-center justify-between border border-jj-grey/30 dark:border-gray-700 rounded-lg p-4 mb-3 bg-white dark:bg-gray-800"
-              >
+        {/* SESSION CREDITS */}
+        {active === 'session-credits' && (
+          <div className="max-w-2xl">
+            <h3 className="font-heading text-2xl mb-6 text-gray-900 dark:text-white">Session Credits</h3>
+            <div className="text-center py-12 border border-dashed border-jj-grey/40 dark:border-gray-700 rounded-lg">
+              <Coins size={28} className="text-jj-grey/40 mx-auto mb-3" />
+              <p className="text-sm text-gray-500 dark:text-gray-400">No Session Credits</p>
+            </div>
+          </div>
+        )}
+
+        {/* PAYMENT INFORMATION */}
+        {active === 'payment' && (
+          <div className="max-w-2xl">
+            <h3 className="font-heading text-2xl mb-6 text-gray-900 dark:text-white">Payment info</h3>
+            <div className="flex items-center justify-between p-4 border border-jj-grey/30 dark:border-gray-700 rounded-lg mb-4">
+              <div className="flex items-center gap-3">
+                <CreditCard size={22} className="text-jj-blue" />
                 <div>
-                  <div className="font-semibold text-sm text-gray-900 dark:text-white">{p.name}</div>
-                  <div className="text-[13px] text-gray-500 dark:text-gray-400">{p.date} · {p.price}</div>
+                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200">MasterCard \u2022\u2022\u2022\u2022 8607</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Expiration: 1/2029</p>
                 </div>
-                <span className="px-2.5 py-1 bg-brand/20 text-gray-900 dark:text-gray-100 rounded-full text-xs font-medium">
-                  {p.status}
-                </span>
+                <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-brand/15 text-brand">Default</span>
               </div>
-            ))}
+              <button className="text-sm text-jj-coral hover:underline">Delete</button>
+            </div>
+            <button className="px-4 py-2 border border-jj-grey/40 dark:border-gray-600 rounded-md text-sm text-gray-700 dark:text-gray-300 hover:bg-jj-neutral dark:hover:bg-gray-800">
+              + Add payment method
+            </button>
+            <p className="mt-3 text-xs text-gray-400 dark:text-gray-500">Card details are entered securely on the payment provider &mdash; never stored here.</p>
           </div>
         )}
 
+        {/* PURCHASES */}
+        {active === 'purchases' && (
+          <div className="max-w-2xl">
+            <h3 className="font-heading text-2xl mb-6 text-gray-900 dark:text-white">Purchases</h3>
+            <div className="space-y-6">
+              {[
+                ['Main Product', 'No Main Product'],
+                ['Add-ons', 'No Add-ons'],
+                ['Session Packs', 'No Session Packs'],
+              ].map(([title, empty]) => (
+                <div key={title}>
+                  <p className="text-sm font-heading tracking-wide uppercase text-jj-grey dark:text-gray-500 mb-2">{title}</p>
+                  <div className="p-4 border border-jj-grey/30 dark:border-gray-700 rounded-lg text-sm text-gray-500 dark:text-gray-400">{empty}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* TRANSACTION HISTORY */}
         {active === 'transactions' && (
-          <div>
-            <h3 className="font-heading text-2xl mb-5 text-gray-900 dark:text-white">Transactions</h3>
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b-2 border-jj-grey/30 dark:border-gray-700">
-                  {['Date', 'Description', 'Amount', 'Status'].map((h) => (
-                    <th key={h} className="text-left p-2 text-[13px] text-gray-500 dark:text-gray-400 font-medium">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  { date: 'Jan 15', desc: '12-Week Program', amt: '$99', st: 'Paid' },
-                  { date: 'Dec 1', desc: 'Nutrition Package', amt: '$49', st: 'Paid' },
-                ].map((t, i) => (
-                  <tr key={i} className="border-b border-jj-grey/20 dark:border-gray-800 text-sm text-gray-900 dark:text-gray-300">
-                    <td className="p-2 py-3">{t.date}</td>
-                    <td className="p-2 py-3">{t.desc}</td>
-                    <td className="p-2 py-3">{t.amt}</td>
-                    <td className="p-2 py-3">
-                      <span className="px-2 py-0.5 bg-brand/20 text-gray-900 dark:text-gray-100 rounded-full text-xs font-medium">
-                        {t.st}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="max-w-2xl">
+            <h3 className="font-heading text-2xl mb-6 text-gray-900 dark:text-white">Transaction History</h3>
+            <div className="space-y-4">
+              {TRANSACTIONS.map((t) => (
+                <div key={t.name} className="p-4 border border-jj-grey/30 dark:border-gray-700 rounded-lg">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{t.name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t.kind}</p>
+                    </div>
+                    <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-jj-grey/15 text-jj-grey dark:text-gray-400 shrink-0">{t.status}</span>
+                  </div>
+                  <div className="flex items-center justify-between mt-3 text-sm">
+                    <span className="text-gray-700 dark:text-gray-300">{t.price} <span className="text-gray-400 dark:text-gray-500">{t.note}</span></span>
+                    <span className="text-gray-500 dark:text-gray-400">Expires on {t.expires}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
     </div>
   );
 }
+

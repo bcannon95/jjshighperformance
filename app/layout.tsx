@@ -1,20 +1,16 @@
 import type { Metadata } from 'next';
-import { Bebas_Neue, Rubik } from 'next/font/google';
 import './globals.css';
 import Sidebar from '@/components/Sidebar';
 import TopBar from '@/components/TopBar';
 import { ThemeProvider } from '@/components/ThemeProvider';
 
-const bebasNeue = Bebas_Neue({
-  weight: '400',
-  subsets: ['latin'],
-  variable: '--font-bebas',
-});
-
-const rubik = Rubik({
-  subsets: ['latin'],
-  variable: '--font-rubik',
-});
+// NOTE: next/font/google fetches fonts from Google's servers at build/dev time.
+// In an offline or firewalled environment that fetch hangs and the dev server
+// never finishes compiling. We use local CSS-variable classes with system-font
+// fallbacks instead, so no network access is required. The class names below
+// map to the same --font-bebas / --font-rubik variables used by Tailwind.
+const bebasNeue = { variable: 'font-bebas-fallback' };
+const rubik = { variable: 'font-rubik-fallback' };
 
 export const metadata: Metadata = {
   title: "JJ's High Performance - Client Portal",
@@ -28,6 +24,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <style>{`
+          .font-bebas-fallback { --font-bebas: 'Bebas Neue', 'Arial Narrow', 'Oswald', system-ui, sans-serif; }
+          .font-rubik-fallback { --font-rubik: 'Rubik', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+        `}</style>
+      </head>
       <body className={`${bebasNeue.variable} ${rubik.variable} font-body bg-jj-neutral dark:bg-gray-950`}>
         <ThemeProvider>
           <div className="flex h-screen overflow-hidden">

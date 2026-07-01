@@ -11,7 +11,13 @@
       "Bash(npx tsc:*)",
       "Bash(ls C:/Dev/jjs-app/*.pdf)",
       "Bash(python3 -c \":*)",
-      "Bash(pdftotext /tmp/brand.pdf -)"
+      "Bash(pdftotext /tmp/brand.pdf -)",
+      "Bash(npx kill-port:*)",
+      "Bash(node:*)",
+      "Bash(ls *.lock yarn.lock pnpm-lock.yaml)",
+      "Bash(npm install:*)",
+      "Bash(git add:*)",
+      "Bash(git rm:*)"
     ]
   }
 }
