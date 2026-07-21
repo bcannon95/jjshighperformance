@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import Sidebar from '@/components/Sidebar';
-import TopBar from '@/components/TopBar';
+import AuthProvider from '@/components/AuthProvider';
+import AppShell from '@/components/AppShell';
 import { ThemeProvider } from '@/components/ThemeProvider';
 
 // NOTE: next/font/google fetches fonts from Google's servers at build/dev time.
@@ -25,20 +25,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <style>{`
+        <style dangerouslySetInnerHTML={{ __html: `
           .font-bebas-fallback { --font-bebas: 'Bebas Neue', 'Arial Narrow', 'Oswald', system-ui, sans-serif; }
           .font-rubik-fallback { --font-rubik: 'Rubik', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
-        `}</style>
+        ` }} />
       </head>
       <body className={`${bebasNeue.variable} ${rubik.variable} font-body bg-jj-neutral dark:bg-gray-950`}>
         <ThemeProvider>
-          <div className="flex h-screen overflow-hidden">
-            <Sidebar />
-            <div className="flex flex-col flex-1 overflow-hidden">
-              <TopBar />
-              <main className="flex-1 overflow-y-auto">{children}</main>
-            </div>
-          </div>
+          <AuthProvider>
+            <AppShell>{children}</AppShell>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

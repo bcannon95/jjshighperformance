@@ -2,11 +2,21 @@
 import { useState } from 'react';
 import { Bell, ChevronDown, User, LogOut, Sun, Moon } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
+import { useAuth } from './AuthProvider';
 
 export default function TopBar() {
   const [showNotifs, setShowNotifs] = useState(false);
   const [showUser, setShowUser] = useState(false);
   const { theme, toggle } = useTheme();
+  const { user, signOut } = useAuth();
+
+  const displayName = user?.user_metadata?.full_name ?? user?.email ?? '';
+  const initials = displayName
+    .split(' ')
+    .map((n: string) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 
   return (
     <div className="h-14 bg-white dark:bg-gray-900 border-b border-jj-grey/40 dark:border-gray-700 flex items-center justify-end px-6 gap-4 shrink-0 relative z-40">
@@ -62,10 +72,10 @@ export default function TopBar() {
           className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-jj-neutral dark:hover:bg-gray-800"
         >
           <div className="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center">
-            <span className="text-brand text-sm font-semibold">JT</span>
+            <span className="text-brand text-sm font-semibold">{initials}</span>
           </div>
           <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
-            Jaimee Tarlinton
+            {displayName}
           </span>
           <ChevronDown size={16} className="text-gray-400" />
         </button>
@@ -78,7 +88,10 @@ export default function TopBar() {
               <User size={16} /> My Account
             </a>
             <hr className="my-1 border-jj-grey/40 dark:border-gray-700" />
-            <button className="flex items-center gap-3 px-4 py-2.5 hover:bg-jj-neutral dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-200 w-full">
+            <button
+              onClick={signOut}
+              className="flex items-center gap-3 px-4 py-2.5 hover:bg-jj-neutral dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-200 w-full"
+            >
               <LogOut size={16} /> Sign Out
             </button>
           </div>

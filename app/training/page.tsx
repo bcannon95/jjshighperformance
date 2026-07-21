@@ -1,292 +1,445 @@
 'use client';
-import { useState } from 'react';
-import {
-  Play,
-  ChevronRight,
-  Tag,
-  Dumbbell,
-  Clock,
-  Flame,
-  CheckCircle2,
-} from 'lucide-react';
 
-const programs = [
-  {
-    id: 1,
-    name: "Jaimee's Program",
-    tag: 'MAIN',
-    weeks: 12,
-    days: 4,
-    description: 'Full body strength and conditioning program',
-  },
-];
+import { useEffect, useState } from 'react';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '@/components/AuthProvider';
+import { Play, ChevronRight, Tag, Dumbbell, Clock, CheckCircle2 } from 'lucide-react';
 
-const workouts = [
-  {
-    id: 1,
-    day: 'Day 1',
-    name: 'Upper Body Strength',
-    exercises: 6,
-    duration: '45 min',
-    calories: 320,
-    completed: true,
-  },
-  {
-    id: 2,
-    day: 'Day 2',
-    name: 'Lower Body Power',
-    exercises: 5,
-    duration: '50 min',
-    calories: 380,
-    completed: true,
-  },
-  {
-    id: 3,
-    day: 'Day 3',
-    name: 'HIIT Cardio',
-    exercises: 8,
-    duration: '30 min',
-    calories: 420,
-    completed: false,
-  },
-  {
-    id: 4,
-    day: 'Day 4',
-    name: 'Full Body Circuit',
-    exercises: 7,
-    duration: '55 min',
-    calories: 400,
-    completed: false,
-  },
-];
+type ClientProgram = {
+  id: number;
+  name: string;
+  is_main: boolean;
+  status: string | null;
+};
 
-const exercises = [
-  {
-    name: 'Barbell Back Squat',
-    sets: 4,
-    reps: '8-10',
-    rest: '90s',
-    muscles: 'Quads, Glutes',
-  },
-  {
-    name: 'Romanian Deadlift',
-    sets: 3,
-    reps: '10-12',
-    rest: '90s',
-    muscles: 'Hamstrings, Lower Back',
-  },
-  {
-    name: 'Leg Press',
-    sets: 3,
-    reps: '12-15',
-    rest: '60s',
-    muscles: 'Quads, Glutes',
-  },
-  {
-    name: 'Walking Lunges',
-    sets: 3,
-    reps: '12 each',
-    rest: '60s',
-    muscles: 'Quads, Glutes, Hamstrings',
-  },
-  {
-    name: 'Leg Curl',
-    sets: 3,
-    reps: '12-15',
-    rest: '60s',
-    muscles: 'Hamstrings',
-  },
-];
+type TrainingPhase = {
+  id: number;
+  name: string;
+  start_date: string | null;
+  end_date: string | null;
+  order_index: number | null;
+};
+
+type WorkoutDefinition = {
+  id: number;
+  name: string;
+  description: string | null;
+  est_duration_min: number | null;
+};
+
+type WorkoutExercise = {
+  id: number;
+  exercise_name: string;
+  sets: number | null;
+  reps_min: number | null;
+  reps_max: number | null;
+  rest_seconds: number | null;
+  notes: string | null;
+  order_index: number | null;
+  video_url: string | null;
+  thumbnail_url: string | null;
+};
 
 export default function TrainingPage() {
-  const [selectedProgram, setSelectedProgram] = useState(programs[0]);
-  const [selectedWorkout, setSelectedWorkout] = useState(workouts[2]);
+  const { clientId } = useAuth();
+  const [programs, setPrograms] = useState<ClientProgram[]>([]);
+  const [selectedProgramId, setSelectedProgramId] = useState<number | null>(null);
+  const [phases, setPhases] = useState<TrainingPhase[]>([]);
+  const [selectedPhaseId, setSelectedPhaseId] = useState<number | null>(null);
+  const [workouts, setWorkouts] = useState<WorkoutDefinition[]>([]);
+  const [selectedWorkoutId, setSelectedWorkoutId] = useState<number | null>(null);
+  const [exercises, setExercises] = useState<WorkoutExercise[]>([]);
+  const [completedIds, setCompletedIds] = useState<Set<number>>(new Set());
+  const [expandedExercise, setExpandedExercise] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [exercisesLoading, setExercisesLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [togglingComplete, setTogglingComplete] = useState(false);
+
+  useEffect(() => {
+    if (!clientId) return;
+    let cancelled = false;
+    async function loadPrograms() {
+      setLoading(true);
+      setError(null);
+      try {
+        const { data, error } = await supabase
+          .from('client_programs')
+          .select('id, name, is_main, status')
+          .eq('client_id', clientId)
+          .eq('status', 'active')
+          .order('is_main', { ascending: false })
+          .order('id', { ascending: true });
+        if (cancelled) return;
+        if (error) throw error;
+        const list = data ?? [];
+        setPrograms(list);
+        const main = list.find((p) => p.is_main) ?? list[0];
+        if (main) setSelectedProgramId(main.id);
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load programs');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    loadPrograms();
+    return () => {
+      cancelled = true;
+    };
+  }, [clientId]);
+
+  useEffect(() => {
+    if (!selectedProgramId) return;
+    let cancelled = false;
+    async function loadPhases() {
+      try {
+        const { data, error } = await supabase
+          .from('training_phases')
+          .select('id, name, start_date, end_date, order_index')
+          .eq('client_program_id', selectedProgramId)
+          .order('order_index', { ascending: true });
+        if (cancelled) return;
+        if (error) throw error;
+        const list = data ?? [];
+        setPhases(list);
+        const today = new Date().toISOString().slice(0, 10);
+        const current = list.find(
+          (p) => p.start_date && p.end_date && p.start_date <= today && p.end_date >= today
+        );
+        const pick = current ?? list[0];
+        setSelectedPhaseId(pick ? pick.id : null);
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load phases');
+      }
+    }
+    loadPhases();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedProgramId]);
+
+  useEffect(() => {
+    if (!selectedPhaseId) {
+      setWorkouts([]);
+      setSelectedWorkoutId(null);
+      return;
+    }
+    let cancelled = false;
+    async function loadWorkouts() {
+      try {
+        const { data, error } = await supabase
+          .from('workout_definitions')
+          .select('id, name, description, est_duration_min')
+          .eq('training_phase_id', selectedPhaseId)
+          .order('id', { ascending: true });
+        if (cancelled) return;
+        if (error) throw error;
+        const list = data ?? [];
+        setWorkouts(list);
+        setSelectedWorkoutId(list.length > 0 ? list[0].id : null);
+
+        const ids = list.map((w) => w.id);
+        if (ids.length > 0) {
+          const { data: logs } = await supabase
+            .from('workout_logs')
+            .select('workout_def_id')
+            .eq('client_id', clientId)
+            .in('workout_def_id', ids);
+          if (!cancelled && logs) {
+            setCompletedIds(new Set(logs.map((l) => l.workout_def_id)));
+          }
+        } else {
+          setCompletedIds(new Set());
+        }
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load workouts');
+      }
+    }
+    loadWorkouts();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedPhaseId]);
+
+  useEffect(() => {
+    if (!selectedWorkoutId) {
+      setExercises([]);
+      return;
+    }
+    let cancelled = false;
+    async function loadExercises() {
+      setExercisesLoading(true);
+      setExpandedExercise(null);
+      try {
+        const { data, error } = await supabase
+          .from('workout_exercises')
+          .select(
+            'id, exercise_name, sets, reps_min, reps_max, rest_seconds, notes, order_index, exercises(video_url, thumbnail_url)'
+          )
+          .eq('workout_def_id', selectedWorkoutId)
+          .order('order_index', { ascending: true });
+        if (cancelled) return;
+        if (error) throw error;
+        const mapped = (data ?? []).map((row: any) => ({
+          id: row.id,
+          exercise_name: row.exercise_name,
+          sets: row.sets,
+          reps_min: row.reps_min,
+          reps_max: row.reps_max,
+          rest_seconds: row.rest_seconds,
+          notes: row.notes,
+          order_index: row.order_index,
+          video_url: row.exercises?.video_url ?? null,
+          thumbnail_url: row.exercises?.thumbnail_url ?? null,
+        }));
+        setExercises(mapped);
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load exercises');
+      } finally {
+        if (!cancelled) setExercisesLoading(false);
+      }
+    }
+    loadExercises();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedWorkoutId]);
+
+  const selectedPhase = phases.find((p) => p.id === selectedPhaseId) ?? null;
+  const selectedWorkout = workouts.find((w) => w.id === selectedWorkoutId) ?? null;
+  const isCompleted = selectedWorkoutId ? completedIds.has(selectedWorkoutId) : false;
+
+  async function toggleWorkoutComplete() {
+    if (!selectedWorkoutId || togglingComplete) return;
+    setTogglingComplete(true);
+    const wasCompleted = completedIds.has(selectedWorkoutId);
+    setCompletedIds((prev) => {
+      const next = new Set(prev);
+      if (wasCompleted) next.delete(selectedWorkoutId);
+      else next.add(selectedWorkoutId);
+      return next;
+    });
+    try {
+      if (wasCompleted) {
+        const { error } = await supabase
+          .from('workout_logs')
+          .delete()
+          .eq('client_id', clientId)
+          .eq('workout_def_id', selectedWorkoutId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('workout_logs').insert({
+          client_id: clientId,
+          workout_def_id: selectedWorkoutId,
+          completed_at: new Date().toISOString(),
+          duration_min: selectedWorkout?.est_duration_min ?? null,
+        });
+        if (error) throw error;
+      }
+    } catch (e) {
+      setCompletedIds((prev) => {
+        const next = new Set(prev);
+        if (wasCompleted) next.add(selectedWorkoutId);
+        else next.delete(selectedWorkoutId);
+        return next;
+      });
+      // eslint-disable-next-line no-console
+      console.error('Failed to update workout completion:', e instanceof Error ? e.message : e);
+    } finally {
+      setTogglingComplete(false);
+    }
+  }
+
+  if (loading) {
+    return <div className="p-8 text-jj-grey dark:text-gray-400">Loading training program…</div>;
+  }
+
+  if (error && programs.length === 0) {
+    return <div className="p-8 text-red-500">Couldn&apos;t load your training program: {error}</div>;
+  }
 
   return (
-    <div className="flex h-full bg-gray-50 dark:bg-gray-950">
-      <div className="w-72 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col">
-        <div className="p-5 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-white">
-            Training Programs
-          </h2>
-        </div>
-        <div className="flex-1 overflow-auto p-4 space-y-3">
-          {programs.map((program) => (
-            <button
-              key={program.id}
-              onClick={() => setSelectedProgram(program)}
-              className={`w-full text-left p-4 rounded-xl border transition-all ${
-                selectedProgram.id === program.id
-                  ? 'border-brand bg-brand/10'
-                  : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600'
-              }`}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                  {program.name}
-                </span>
-                {program.tag && (
-                  <span className="flex items-center gap-1 text-xs bg-brand/20 text-gray-700 dark:text-gray-900 px-2 py-0.5 rounded-full font-medium">
-                    <Tag size={10} />
-                    {program.tag}
+    <div className="flex gap-6 p-6">
+      <aside className="w-72 flex-shrink-0 space-y-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4">
+          <h2 className="text-sm font-semibold text-jj-grey dark:text-gray-400 mb-3">Training Program</h2>
+          <div className="space-y-1">
+            {programs.map((program) => (
+              <button
+                key={program.id}
+                onClick={() => setSelectedProgramId(program.id)}
+                className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center justify-between ${program.id === selectedProgramId
+                    ? 'bg-jj-blue text-white'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+              >
+                <span className="truncate">{program.name}</span>
+                {program.is_main && (
+                  <span className="ml-2 text-[10px] font-bold uppercase tracking-wide bg-brand text-black px-1.5 py-0.5 rounded flex-shrink-0">
+                    Main
                   </span>
                 )}
-              </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{program.description}</p>
-              <div className="flex gap-3 mt-3">
-                <span className="text-xs text-gray-400 dark:text-gray-500">
-                  {program.weeks} weeks
-                </span>
-                <span className="text-xs text-gray-400 dark:text-gray-500">
-                  {program.days} days/week
-                </span>
-              </div>
-            </button>
-          ))}
-        </div>
-        <div className="border-t border-gray-200 p-4">
-          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
-            Workouts
-          </p>
-          <div className="space-y-2">
-            {workouts.map((workout) => (
-              <button
-                key={workout.id}
-                onClick={() => setSelectedWorkout(workout)}
-                className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all ${
-                  selectedWorkout.id === workout.id
-                    ? 'bg-gray-900 dark:bg-gray-700 text-white'
-                    : 'hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
-                }`}
-              >
-                {workout.completed ? (
-                  <CheckCircle2
-                    size={16}
-                    className={
-                      selectedWorkout.id === workout.id
-                        ? 'text-brand'
-                        : 'text-green-500'
-                    }
-                  />
-                ) : (
-                  <div
-                    className={`w-4 h-4 rounded-full border-2 flex-shrink-0 ${
-                      selectedWorkout.id === workout.id
-                        ? 'border-gray-400'
-                        : 'border-gray-300'
-                    }`}
-                  />
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium truncate">{workout.day}</p>
-                  <p
-                    className={`text-xs truncate ${
-                      selectedWorkout.id === workout.id
-                        ? 'text-gray-300'
-                        : 'text-gray-500'
-                    }`}
-                  >
-                    {workout.name}
-                  </p>
-                </div>
-                <ChevronRight size={14} className="flex-shrink-0 opacity-50" />
               </button>
             ))}
           </div>
         </div>
-      </div>
 
-      <div className="flex-1 overflow-auto">
-        {selectedWorkout && (
+        {phases.length > 0 && (
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4">
+            <h2 className="text-sm font-semibold text-jj-grey dark:text-gray-400 mb-3">Phase</h2>
+            <div className="space-y-1">
+              {phases.map((phase) => (
+                <button
+                  key={phase.id}
+                  onClick={() => setSelectedPhaseId(phase.id)}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm ${phase.id === selectedPhaseId
+                      ? 'bg-jj-blue text-white'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    }`}
+                >
+                  {phase.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4">
+          <h2 className="text-sm font-semibold text-jj-grey dark:text-gray-400 mb-3">Workouts</h2>
+          {workouts.length === 0 ? (
+            <p className="text-sm text-gray-400">No workouts in this phase yet.</p>
+          ) : (
+            <div className="space-y-1">
+              {workouts.map((workout) => (
+                <button
+                  key={workout.id}
+                  onClick={() => setSelectedWorkoutId(workout.id)}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${workout.id === selectedWorkoutId
+                      ? 'bg-jj-blue text-white'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    }`}
+                >
+                  {completedIds.has(workout.id) ? (
+                    <CheckCircle2 size={16} className="text-brand flex-shrink-0" />
+                  ) : (
+                    <span className="w-4 h-4 flex-shrink-0" />
+                  )}
+                  <span className="truncate">{workout.name}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </aside>
+
+      <main className="flex-1 space-y-6">
+        {!selectedWorkout ? (
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-8 text-center text-gray-400">
+            Select a workout to get started.
+          </div>
+        ) : (
           <>
-            <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 p-6">
-              <div className="flex items-start justify-between">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
+              <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                    {selectedWorkout.day}
-                  </p>
-                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {selectedWorkout.name}
-                  </h3>
+                  <h1 className="text-xl font-bold text-gray-900 dark:text-white">{selectedWorkout.name}</h1>
+                  {selectedPhase && (
+                    <p className="text-sm text-jj-grey dark:text-gray-400 mt-1">{selectedPhase.name}</p>
+                  )}
                 </div>
-                <button className="flex items-center gap-2 px-5 py-2.5 bg-brand text-gray-900 rounded-xl font-semibold text-sm hover:bg-brand/80 transition-colors">
-                  <Play size={16} fill="currentColor" />
-                  Start Workout
+                <button
+                  onClick={toggleWorkoutComplete}
+                  disabled={togglingComplete}
+                  className={`flex-shrink-0 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 ${isCompleted
+                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                      : 'bg-jj-blue text-white hover:opacity-90'
+                    }`}
+                >
+                  <CheckCircle2 size={16} />
+                  {isCompleted ? 'Completed' : 'Mark Complete'}
                 </button>
               </div>
-              <div className="flex gap-6 mt-4">
-                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                  <Dumbbell size={15} className="text-gray-400 dark:text-gray-500" />
-                  {selectedWorkout.exercises} exercises
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                  <Clock size={15} className="text-gray-400 dark:text-gray-500" />
-                  {selectedWorkout.duration}
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                  <Flame size={15} className="text-gray-400 dark:text-gray-500" />
-                  {selectedWorkout.calories} kcal
-                </div>
+              <div className="flex items-center gap-4 mt-4 text-sm text-jj-grey dark:text-gray-400">
+                {selectedWorkout.est_duration_min && (
+                  <span className="flex items-center gap-1">
+                    <Clock size={14} /> {selectedWorkout.est_duration_min} min
+                  </span>
+                )}
+                <span className="flex items-center gap-1">
+                  <Dumbbell size={14} /> {exercises.length} exercise{exercises.length === 1 ? '' : 's'}
+                </span>
               </div>
             </div>
 
-            <div className="p-6">
-              <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4">
-                Exercises
-              </h4>
-              <div className="space-y-3">
-                {exercises.map((exercise, i) => (
-                  <div
-                    key={i}
-                    className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center gap-4"
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-gray-900 flex items-center justify-center flex-shrink-0">
-                      <span className="text-brand font-bold text-sm">
-                        {i + 1}
-                      </span>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                        {exercise.name}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                        {exercise.muscles}
-                      </p>
-                    </div>
-                    <div className="flex gap-6 text-center">
-                      <div>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide">
-                          Sets
-                        </p>
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white mt-0.5">
-                          {exercise.sets}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide">
-                          Reps
-                        </p>
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white mt-0.5">
-                          {exercise.reps}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide">
-                          Rest
-                        </p>
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white mt-0.5">
-                          {exercise.rest}
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronRight size={16} className="text-gray-400" />
-                  </div>
-                ))}
+            {selectedWorkout.description && (
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
+                <h2 className="text-sm font-semibold text-jj-grey dark:text-gray-400 mb-2 flex items-center gap-2">
+                  <Tag size={14} /> Instructions
+                </h2>
+                <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">
+                  {selectedWorkout.description}
+                </p>
               </div>
+            )}
+
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow overflow-hidden">
+              <h2 className="text-sm font-semibold text-jj-grey dark:text-gray-400 p-6 pb-0">Exercises</h2>
+              {exercisesLoading ? (
+                <p className="text-sm text-gray-400 p-6">Loading exercises…</p>
+              ) : exercises.length === 0 ? (
+                <p className="text-sm text-gray-400 p-6">No exercises added yet for this workout.</p>
+              ) : (
+                <div className="divide-y divide-gray-100 dark:divide-gray-700 mt-4">
+                  {exercises.map((exercise) => (
+                    <div key={exercise.id} className="overflow-hidden">
+                      <button
+                        onClick={() =>
+                          setExpandedExercise(expandedExercise === exercise.id ? null : exercise.id)
+                        }
+                        className="w-full flex items-center gap-4 p-4 text-left"
+                      >
+                        <Dumbbell size={18} className="text-jj-blue flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                            {exercise.exercise_name}
+                          </p>
+                          <p className="text-xs text-jj-grey dark:text-gray-400">
+                            {exercise.sets ?? '\u2013'} sets \u00d7 {exercise.reps_min ?? '\u2013'}
+                            {exercise.reps_max && exercise.reps_max !== exercise.reps_min
+                              ? `-${exercise.reps_max}`
+                              : ''}{' '}
+                            reps
+                            {exercise.rest_seconds ? ` \u00b7 ${exercise.rest_seconds}s rest` : ''}
+                          </p>
+                        </div>
+                        <ChevronRight
+                          size={18}
+                          className={`text-gray-400 flex-shrink-0 transition-transform ${expandedExercise === exercise.id ? 'rotate-90' : ''
+                            }`}
+                        />
+                      </button>
+                      {expandedExercise === exercise.id && (
+                        <div className="px-4 pb-4">
+                          <div className="bg-gray-100 dark:bg-gray-900 rounded-lg aspect-video flex items-center justify-center mb-3">
+                            <Play size={32} className="text-gray-400" />
+                          </div>
+                          {exercise.notes ? (
+                            <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line">
+                              {exercise.notes}
+                            </p>
+                          ) : (
+                            <p className="text-sm text-gray-400">No additional notes for this exercise.</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </>
         )}
-      </div>
+      </main>
     </div>
   );
 }

@@ -17,7 +17,3 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// No auth flow yet — scope all queries to a single known client for now.
-// Swap this for the authenticated user's client_id once auth is wired up.
-export const DEFAULT_CLIENT_ID = 20118221;
-

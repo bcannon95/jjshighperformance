@@ -1,9 +1,12 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { supabase, DEFAULT_CLIENT_ID } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '@/components/AuthProvider';
+import Link from 'next/link';
 import {
   Settings,
+  Menu,
   TrendingUp,
   ChevronLeft,
   ChevronRight,
@@ -19,17 +22,17 @@ import {
   Check,
 } from 'lucide-react';
 
-const progressWidgets = [
-  { label: 'Steps', value: null, unit: '', date: null },
-  { label: 'Sleep', value: null, unit: '', date: null },
-  { label: 'Caloric Burn', value: null, unit: '', date: null },
-  { label: 'Body Weight', value: 65, unit: 'kg', date: '4 Feb 2026' },
-  { label: 'Body Fat', value: null, unit: '', date: null },
-  { label: 'Photos', value: null, unit: '', date: null },
-  { label: 'Caloric Intake', value: null, unit: '', date: null },
-  { label: 'Resting HR', value: null, unit: '', date: null },
-  { label: 'Blood Pressure', value: null, unit: '', date: null },
-  { label: 'Lean Mass', value: null, unit: '', date: null },
+const defaultProgressWidgets = [
+  { label: 'Steps', value: null, unit: '', date: null, hidden: false },
+  { label: 'Sleep', value: null, unit: '', date: null, hidden: false },
+  { label: 'Caloric Burn', value: null, unit: '', date: null, hidden: false },
+  { label: 'Body Weight', value: 65, unit: 'kg', date: '4 Feb 2026', hidden: false },
+  { label: 'Body Fat', value: null, unit: '', date: null, hidden: false },
+  { label: 'Photos', value: null, unit: '', date: null, hidden: false },
+  { label: 'Caloric Intake', value: null, unit: '', date: null, hidden: false },
+  { label: 'Resting HR', value: null, unit: '', date: null, hidden: false },
+  { label: 'Blood Pressure', value: null, unit: '', date: null, hidden: false },
+  { label: 'Lean Mass', value: null, unit: '', date: null, hidden: false },
 ];
 
 const ADD_OPTIONS = [
@@ -78,9 +81,14 @@ function toDateStr(d: Date) {
 }
 
 export default function Dashboard() {
+  const { clientId } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [progressWidgets, setProgressWidgets] = useState(defaultProgressWidgets);
+  const [showWidgetConfig, setShowWidgetConfig] = useState(false);
+  const [draftWidgets, setDraftWidgets] = useState(defaultProgressWidgets);
+  const [draggedWidget, setDraggedWidget] = useState<{ label: string; from: 'displayed' | 'hidden' } | null>(null);
 
   // Calendar / date navigation
   const [selectedDate, setSelectedDate] = useState(() => toDateStr(new Date()));
@@ -148,6 +156,7 @@ export default function Dashboard() {
 
   // Load events for the selected date whenever it changes.
   useEffect(() => {
+    if (!clientId) return;
     let cancelled = false;
     async function load() {
       setLoading(true);
@@ -159,7 +168,7 @@ export default function Dashboard() {
         const query = supabase
           .from('calendar_events')
           .select('id, event_type, scheduled_date, completed_at, notes')
-          .eq('client_id', DEFAULT_CLIENT_ID)
+          .eq('client_id', clientId)
           .eq('scheduled_date', selectedDate)
           .order('id', { ascending: true });
         const { data, error } = (await Promise.race([query, timeout])) as Awaited<typeof query>;
@@ -184,7 +193,7 @@ export default function Dashboard() {
     return () => {
       cancelled = true;
     };
-  }, [selectedDate]);
+  }, [selectedDate, clientId]);
 
 
   function formatHeader(dateStr: string) {
@@ -309,7 +318,7 @@ export default function Dashboard() {
     const base = Date.now();
     const rows = selectedTypes.map((id, i) => ({
       id: base + i,
-      client_id: DEFAULT_CLIENT_ID,
+      client_id: clientId,
       event_type: EVENT_TYPE[id],
       scheduled_date: modalDate,
       notes: buildLabel(id),
@@ -375,6 +384,7 @@ export default function Dashboard() {
   }
 
   const visibleTasks = tasks.filter((t) => t.date === selectedDate);
+  const achievements = [{ icon: '🏆', name: 'First Workout', date: 'Jan 5, 2026' }, { icon: '🔥', name: '7-Day Streak', date: 'Jan 12, 2026' }, { icon: '💪', name: 'Strength Milestone', date: 'Jan 20, 2026' }];
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -397,11 +407,10 @@ export default function Dashboard() {
             <button
               onClick={goToday}
               disabled={selectedDate === todayStr}
-              className={`text-xs font-heading tracking-widest uppercase px-2 py-1 rounded transition-colors ${
-                selectedDate === todayStr
+              className={`text-xs font-heading tracking-widest uppercase px-2 py-1 rounded transition-colors ${selectedDate === todayStr
                   ? 'opacity-40 cursor-not-allowed'
                   : 'hover:text-jj-blue/70'
-              }`}
+                }`}
               aria-label="Go to today"
             >
               Today
@@ -448,15 +457,14 @@ export default function Dashboard() {
                         <button
                           key={cell.date}
                           onClick={() => pickDate(cell.date)}
-                          className={`h-8 text-sm rounded-lg transition-colors ${
-                            isSelected
+                          className={`h-8 text-sm rounded-lg transition-colors ${isSelected
                               ? 'bg-brand text-white font-medium'
                               : isTodayCell
-                              ? 'text-brand font-medium hover:bg-jj-neutral dark:hover:bg-gray-700'
-                              : cell.inMonth
-                              ? 'text-gray-700 dark:text-gray-300 hover:bg-jj-neutral dark:hover:bg-gray-700'
-                              : 'text-jj-grey/40 dark:text-gray-600 hover:bg-jj-neutral dark:hover:bg-gray-700'
-                          }`}
+                                ? 'text-brand font-medium hover:bg-jj-neutral dark:hover:bg-gray-700'
+                                : cell.inMonth
+                                  ? 'text-gray-700 dark:text-gray-300 hover:bg-jj-neutral dark:hover:bg-gray-700'
+                                  : 'text-jj-grey/40 dark:text-gray-600 hover:bg-jj-neutral dark:hover:bg-gray-700'
+                            }`}
                         >
                           {Number(cell.date.slice(8, 10))}
                         </button>
@@ -488,18 +496,16 @@ export default function Dashboard() {
                 <div key={task.id} className="flex items-center gap-3 py-2.5 border-b border-jj-grey/10 dark:border-gray-700 last:border-0">
                   <button
                     onClick={() => toggleTask(task.id)}
-                    className={`w-6 h-6 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors ${
-                      task.done ? 'bg-brand border-brand' : 'border-jj-grey dark:border-gray-600'
-                    }`}
+                    className={`w-6 h-6 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors ${task.done ? 'bg-brand border-brand' : 'border-jj-grey dark:border-gray-600'
+                      }`}
                   >
                     {task.done && <Check size={14} className="text-white" />}
                   </button>
                   <div className="w-7 h-7 rounded-lg bg-brand/10 flex items-center justify-center shrink-0">
                     <Icon size={14} className="text-brand" />
                   </div>
-                  <span className={`flex-1 text-sm font-medium transition-colors ${
-                    task.done ? 'line-through text-jj-grey dark:text-gray-600' : 'text-gray-700 dark:text-gray-200'
-                  }`}>
+                  <span className={`flex-1 text-sm font-medium transition-colors ${task.done ? 'line-through text-jj-grey dark:text-gray-600' : 'text-gray-700 dark:text-gray-200'
+                    }`}>
                     {task.label}
                   </span>
                   <button
@@ -523,11 +529,11 @@ export default function Dashboard() {
           </h2>
           <div className="flex gap-2 text-jj-blue">
             <button><TrendingUp size={18} /></button>
-            <button><Settings size={18} /></button>
+            <button onClick={() => { setDraftWidgets(progressWidgets); setShowWidgetConfig(true); }}><Settings size={18} /></button>
           </div>
         </div>
         <div className="grid grid-cols-3 gap-3">
-          {progressWidgets.map((w) => (
+          {progressWidgets.filter((w) => !w.hidden).map((w) => (
             <div
               key={w.label}
               className="border border-jj-grey/20 dark:border-gray-700 rounded-xl p-3"
@@ -544,6 +550,132 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
+
+        {/* ACHIEVEMENTS */}
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-jj-grey/30 dark:border-gray-700 p-5 mb-6">
+        <div className="flex items-center justify-between mb-4">
+        <h2 className="font-heading text-lg tracking-widest text-gray-700 dark:text-gray-200 uppercase">
+        Achievements
+        </h2>
+        <Link href="/badges" className="text-xs font-medium text-jj-blue hover:underline">
+        View All
+        </Link>
+        </div>
+        <p className="text-sm text-jj-grey dark:text-gray-400 mb-4">You&apos;ve earned {achievements.length} of {achievements.length + 4} badges</p>
+        <div className="grid grid-cols-3 gap-3">
+        {achievements.map((a) => (
+        <div key={a.name} className="border-2 border-brand rounded-xl p-3 text-center bg-white dark:bg-gray-800">
+        <div className="text-3xl mb-2">{a.icon}</div>
+        <p className="text-sm font-bold text-gray-800 dark:text-white">{a.name}</p>
+        <p className="text-xs text-brand font-semibold mt-1">{a.date}</p>
+        </div>
+        ))}
+        </div>
+        </div>
+        
+        {/* CONFIGURE WIDGETS MODAL */}
+        {showWidgetConfig && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* backdrop */}
+            <div
+              className="absolute inset-0 bg-black/40"
+              onClick={() => setShowWidgetConfig(false)}
+            />
+            <div className="relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-heading text-lg tracking-widest text-gray-700 dark:text-gray-200 uppercase">
+                  Configure dashboard widgets
+                </h3>
+                <button onClick={() => setShowWidgetConfig(false)}>
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs font-medium text-jj-grey dark:text-gray-400 mb-2 uppercase tracking-wide">Displayed Tiles</p>
+                  <div
+                    className="min-h-[140px] border border-jj-grey/20 dark:border-gray-700 rounded-lg p-2 space-y-1"
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={() => {
+                      if (!draggedWidget) return;
+                      setDraftWidgets((prev) => prev.map((w) => (w.label === draggedWidget.label ? { ...w, hidden: false } : w)));
+                      setDraggedWidget(null);
+                    }}
+                  >
+                    {draftWidgets.filter((w) => !w.hidden).map((w) => (
+                      <div
+                        key={w.label}
+                        draggable
+                        onDragStart={() => setDraggedWidget({ label: w.label, from: 'displayed' })}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.stopPropagation();
+                          if (!draggedWidget) return;
+                          setDraftWidgets((prev) => {
+                            const moved = prev.find((x) => x.label === draggedWidget.label);
+                            if (!moved) return prev;
+                            const rest = prev.filter((x) => x.label !== draggedWidget.label);
+                            const targetIndex = rest.findIndex((x) => x.label === w.label);
+                            const updated = { ...moved, hidden: false };
+                            rest.splice(targetIndex, 0, updated);
+                            return rest;
+                          });
+                          setDraggedWidget(null);
+                        }}
+                        className="flex items-center gap-2 px-2 py-2 bg-white dark:bg-gray-800 border border-jj-grey/20 dark:border-gray-700 rounded-lg cursor-move text-sm text-gray-700 dark:text-gray-200"
+                      >
+                        <Menu size={14} className="text-jj-grey" />
+                        {w.label}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-jj-grey dark:text-gray-400 mb-2 uppercase tracking-wide">Hidden Tiles</p>
+                  <div
+                    className="min-h-[140px] border border-dashed border-jj-grey/30 dark:border-gray-700 rounded-lg p-2 space-y-1"
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={() => {
+                      if (!draggedWidget) return;
+                      setDraftWidgets((prev) => prev.map((w) => (w.label === draggedWidget.label ? { ...w, hidden: true } : w)));
+                      setDraggedWidget(null);
+                    }}
+                  >
+                    {draftWidgets.filter((w) => w.hidden).length === 0 ? (
+                      <p className="text-xs text-jj-grey/50 text-center mt-6">Drag tiles here to hide them</p>
+                    ) : (
+                      draftWidgets.filter((w) => w.hidden).map((w) => (
+                        <div
+                          key={w.label}
+                          draggable
+                          onDragStart={() => setDraggedWidget({ label: w.label, from: 'hidden' })}
+                          className="flex items-center gap-2 px-2 py-2 bg-white dark:bg-gray-800 border border-jj-grey/20 dark:border-gray-700 rounded-lg cursor-move text-sm text-gray-500 dark:text-gray-400"
+                        >
+                          <Menu size={14} className="text-jj-grey" />
+                          {w.label}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 mt-6">
+                <button
+                  onClick={() => setShowWidgetConfig(false)}
+                  className="px-4 py-2 text-sm rounded-lg border border-jj-grey/30 dark:border-gray-700 text-gray-700 dark:text-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => { setProgressWidgets(draftWidgets); setShowWidgetConfig(false); }}
+                  className="px-4 py-2 text-sm rounded-lg bg-jj-blue text-white"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ADD ACTIVITY MODAL */}
@@ -567,11 +699,10 @@ export default function Dashboard() {
                 <button
                   onClick={handleAdd}
                   disabled={!canAdd}
-                  className={`text-sm font-heading tracking-widest uppercase px-4 py-1.5 rounded-lg transition-colors ${
-                    canAdd
+                  className={`text-sm font-heading tracking-widest uppercase px-4 py-1.5 rounded-lg transition-colors ${canAdd
                       ? 'bg-brand text-white hover:bg-brand/90'
                       : 'bg-jj-grey/20 text-jj-grey cursor-not-allowed dark:bg-gray-700 dark:text-gray-500'
-                  }`}
+                    }`}
                 >
                   Add
                 </button>
@@ -598,9 +729,8 @@ export default function Dashboard() {
               </div>
               <button
                 onClick={() => setRepeat((v) => !v)}
-                className={`text-xs font-medium transition-colors ${
-                  repeat ? 'text-brand' : 'text-jj-blue hover:text-jj-blue/70'
-                }`}
+                className={`text-xs font-medium transition-colors ${repeat ? 'text-brand' : 'text-jj-blue hover:text-jj-blue/70'
+                  }`}
               >
                 {repeat ? '✓ Repeats' : 'Setup repeat option'}
               </button>
@@ -618,14 +748,12 @@ export default function Dashboard() {
                     <button
                       key={option.id}
                       onClick={() => toggleType(option.id)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
-                        active ? 'bg-jj-neutral dark:bg-gray-800' : 'hover:bg-jj-neutral/60 dark:hover:bg-gray-800/60'
-                      }`}
+                      className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${active ? 'bg-jj-neutral dark:bg-gray-800' : 'hover:bg-jj-neutral/60 dark:hover:bg-gray-800/60'
+                        }`}
                     >
                       <span
-                        className={`w-5 h-5 rounded border-2 shrink-0 flex items-center justify-center transition-colors ${
-                          checked ? 'bg-brand border-brand' : 'border-jj-grey dark:border-gray-600'
-                        }`}
+                        className={`w-5 h-5 rounded border-2 shrink-0 flex items-center justify-center transition-colors ${checked ? 'bg-brand border-brand' : 'border-jj-grey dark:border-gray-600'
+                          }`}
                       >
                         {checked && <Check size={12} className="text-white" />}
                       </span>

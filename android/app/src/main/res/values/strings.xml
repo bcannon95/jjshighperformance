@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">JJs High Performance</string>
+    <string name="title_activity_main">JJs High Performance</string>
+    <string name="package_name">com.jjshighperformance.app</string>
+    <string name="custom_url_scheme">com.jjshighperformance.app</string>
+</resources>
