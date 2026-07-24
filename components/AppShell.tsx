@@ -1,24 +1,35 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useAuth } from './AuthProvider';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
 
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-jj-neutral dark:bg-gray-950">
-        <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  // Supabase sends auth errors (e.g. expired reset link) to the site root URL,
+  // not to /reset-password. Detect and forward them so the page can display them.
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.includes('error=') && pathname !== '/reset-password') {
+      router.replace('/reset-password' + hash);
+    }
+  }, [pathname, router]);
 
-  if (!session || pathname === '/login') {
-    return <>{children}</>;
+  const publicPaths = ['/login', '/reset-password'];
+  const isPublic = publicPaths.includes(pathname);
+
+  // Always render public pages immediately (login, reset-password).
+  if (isPublic) return <>{children}</>;
+
+  // Block protected pages while loading or unauthenticated to prevent any
+  // content flash before the redirect to /login fires.
+  if (loading || !session) {
+    return <div className="min-h-screen bg-jj-neutral dark:bg-gray-950" />;
   }
 
   return (

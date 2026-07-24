@@ -25,9 +25,23 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
         <style dangerouslySetInnerHTML={{ __html: `
           .font-bebas-fallback { --font-bebas: 'Bebas Neue', 'Arial Narrow', 'Oswald', system-ui, sans-serif; }
           .font-rubik-fallback { --font-rubik: 'Rubik', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+        ` }} />
+        {/* Apply theme before first paint to avoid flash of wrong colour scheme */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          (function() {
+            try {
+              var t = localStorage.getItem('theme');
+              if (t !== 'light') {
+                document.documentElement.classList.add('dark');
+              }
+            } catch(e) {
+              document.documentElement.classList.add('dark');
+            }
+          })();
         ` }} />
       </head>
       <body className={`${bebasNeue.variable} ${rubik.variable} font-body bg-jj-neutral dark:bg-gray-950`}>
