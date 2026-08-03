@@ -56,13 +56,20 @@ export default function ResetPasswordPage() {
     }
     setError(null);
     setLoading(true);
-    const { error } = await supabase.auth.updateUser({ password });
-    setLoading(false);
-    if (error) {
-      setError(error.message);
-    } else {
-      setPageState('success');
-      setTimeout(() => router.replace('/'), 2000);
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) {
+        console.error('[ResetPassword] updateUser error:', error);
+        setError(error.message || 'Failed to update password. Please try again.');
+      } else {
+        setPageState('success');
+        setTimeout(() => { window.location.href = '/'; }, 2000);
+      }
+    } catch (err) {
+      console.error('[ResetPassword] unexpected error:', err);
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setLoading(false);
     }
   }
 
