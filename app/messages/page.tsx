@@ -58,7 +58,7 @@ export default function MessagesPage() {
 
   // ── Load conversation list ─────────────────────────────────────────────────
   const loadConversations = useCallback(async () => {
-    if (!clientId) return
+    if (!clientId) { setLoadingConvs(false); return }
     setLoadingConvs(true)
 
     // Step 1: conversations visible to this client (RLS filters automatically)
@@ -72,6 +72,7 @@ export default function MessagesPage() {
       setLoadingConvs(false)
       return
     }
+
 
     const convIds = convs.map((c) => c.id)
 

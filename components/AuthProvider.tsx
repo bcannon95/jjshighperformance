@@ -27,11 +27,11 @@ export function useAuth() {
 
 async function fetchClientId(userId: string): Promise<number | null> {
   const { data } = await supabase
-    .from('profiles')
-    .select('client_id')
-    .eq('id', userId)
+    .from('clients')
+    .select('id')
+    .eq('auth_user_id', userId)
     .single();
-  return data?.client_id ?? null;
+  return data?.id ?? null;
 }
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
