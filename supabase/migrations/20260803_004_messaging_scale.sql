@@ -33,7 +33,15 @@ AS $$
 $$;
 
 
--- ── 2. INDEXES ───────────────────────────────────────────────────────────────
+-- ── 2. DENORMALISED LAST-MESSAGE COLUMNS ─────────────────────────────────────
+-- Must come before the index that references last_message_at.
+
+ALTER TABLE conversations
+  ADD COLUMN IF NOT EXISTS last_message_at      timestamptz,
+  ADD COLUMN IF NOT EXISTS last_message_preview text;         -- truncated to 120 chars
+
+
+-- ── 3. INDEXES ───────────────────────────────────────────────────────────────
 
 -- Fast lookup of all conversations a participant belongs to (RLS + thread list)
 CREATE INDEX IF NOT EXISTS conversation_participants_participant_idx
@@ -46,13 +54,6 @@ CREATE INDEX IF NOT EXISTS conversation_participants_conversation_participant_id
 -- Thread list sort order (most recently active first)
 CREATE INDEX IF NOT EXISTS conversations_last_message_at_idx
   ON conversations(last_message_at DESC NULLS LAST);
-
-
--- ── 3. DENORMALISED LAST-MESSAGE COLUMNS ─────────────────────────────────────
-
-ALTER TABLE conversations
-  ADD COLUMN IF NOT EXISTS last_message_at      timestamptz,
-  ADD COLUMN IF NOT EXISTS last_message_preview text;         -- truncated to 120 chars
 
 -- Trigger function: fires after INSERT / UPDATE / DELETE on messages.
 -- On DELETE it recalculates from the next most-recent row; on INSERT/UPDATE
