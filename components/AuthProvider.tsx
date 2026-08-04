@@ -110,11 +110,19 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   }, [session, loading, pathname, router]);
 
   async function signOut() {
-    localStorage.removeItem('jjs_remember_me');
-    sessionStorage.removeItem('jjs_session_only');
-    await supabase.auth.signOut();
+  localStorage.removeItem('jjs_remember_me');
+  sessionStorage.removeItem('jjs_session_only');
+  try {
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Sign out timed out after 5s')), 5000)
+    );
+    await Promise.race([supabase.auth.signOut(), timeout]);
+  } catch (err) {
+    console.error('Sign out failed or timed out:', err);
+  } finally {
     window.location.href = '/login';
   }
+}
 
   return (
     <AuthContext.Provider
