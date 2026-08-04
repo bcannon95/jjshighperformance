@@ -134,6 +134,41 @@ export default function Dashboard() {
     });
   }, [clientId]);
 
+  // Load workout definitions from the client's active program / current phase
+  useEffect(() => {
+    if (!clientId) return;
+    async function loadWorkoutDefs() {
+      const { data: programs } = await supabase
+        .from('client_programs')
+        .select('id')
+        .eq('client_id', clientId)
+        .eq('status', 'active')
+        .order('is_main', { ascending: false })
+        .limit(1);
+      const programId = programs?.[0]?.id;
+      if (!programId) return;
+
+      const today = toDateStr(new Date());
+      const { data: phases } = await supabase
+        .from('training_phases')
+        .select('id, start_date, end_date, order_index')
+        .eq('client_program_id', programId)
+        .order('order_index', { ascending: true });
+      const phase =
+        phases?.find((p) => p.start_date && p.end_date && p.start_date <= today && p.end_date >= today) ??
+        phases?.[0];
+      if (!phase) return;
+
+      const { data: defs } = await supabase
+        .from('workout_definitions')
+        .select('id, name')
+        .eq('training_phase_id', phase.id)
+        .order('id', { ascending: true });
+      if (defs) setWorkoutDefs(defs);
+    }
+    loadWorkoutDefs();
+  }, [clientId]);
+
   // Calendar / date navigation
   const [selectedDate, setSelectedDate] = useState(() => toDateStr(new Date()));
   const [showCalendar, setShowCalendar] = useState(false);
@@ -147,6 +182,8 @@ export default function Dashboard() {
 
   // Per-type panel state
   const [workoutProgram, setWorkoutProgram] = useState('');
+  const [workoutDefId, setWorkoutDefId] = useState<number | null>(null);
+  const [workoutDefs, setWorkoutDefs] = useState<{ id: number; name: string }[]>([]);
   const [cardioActivity, setCardioActivity] = useState(CARDIO_ACTIVITIES[0]);
   const [cardioTarget, setCardioTarget] = useState<'none' | 'distance' | 'time' | 'custom'>('none');
   const [cardioTargetValue, setCardioTargetValue] = useState('');
@@ -304,6 +341,8 @@ export default function Dashboard() {
     setActivePanel('workout');
     setModalDate(selectedDate);
     setRepeat(false);
+    setWorkoutProgram('');
+    setWorkoutDefId(null);
     setShowModal(true);
   }
 
@@ -368,6 +407,7 @@ export default function Dashboard() {
       notes: buildLabel(id),
       status: 'scheduled',
       completed_at: null,
+      ...(id === 'workout' && workoutDefId ? { workout_def_id: workoutDefId } : {}),
     }));
     // Optimistic update
     const optimistic: Task[] = rows.map((r) => ({
@@ -815,27 +855,40 @@ export default function Dashboard() {
                 {activePanel === 'workout' && (
                   <div>
                     <p className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-3">Workout</p>
-                    <label className="flex items-center gap-3 p-3 rounded-lg border border-jj-grey/20 dark:border-gray-700 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="workoutSource"
-                        checked={workoutProgram !== ''}
-                        onChange={() => setWorkoutProgram('Current Training Program')}
-                        className="accent-brand"
-                      />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">Select from current training program</span>
-                    </label>
-                    {workoutProgram && (
-                      <select
-                        value={workoutProgram}
-                        onChange={(e) => setWorkoutProgram(e.target.value)}
-                        className="mt-3 w-full text-sm rounded-lg border border-jj-grey/20 dark:border-gray-700 bg-transparent dark:bg-gray-800 px-3 py-2 text-gray-700 dark:text-gray-200"
-                      >
-                        <option>Current Training Program</option>
-                        <option>Upper Body Strength</option>
-                        <option>Lower Body Power</option>
-                        <option>Full Body Circuit</option>
-                      </select>
+                    {workoutDefs.length === 0 ? (
+                      <p className="text-sm text-gray-400 dark:text-gray-500 py-4 text-center">
+                        No workouts found in your current training program.
+                      </p>
+                    ) : (
+                      <>
+                        <label className="flex items-center gap-3 p-3 rounded-lg border border-jj-grey/20 dark:border-gray-700 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="workoutSource"
+                            checked={workoutProgram !== ''}
+                            onChange={() => {
+                              setWorkoutProgram(workoutDefs[0].name);
+                              setWorkoutDefId(workoutDefs[0].id);
+                            }}
+                            className="accent-brand"
+                          />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">Select from current training program</span>
+                        </label>
+                        {workoutProgram && (
+                          <select
+                            value={workoutDefId ?? ''}
+                            onChange={(e) => {
+                              const def = workoutDefs.find((d) => String(d.id) === e.target.value);
+                              if (def) { setWorkoutProgram(def.name); setWorkoutDefId(def.id); }
+                            }}
+                            className="mt-3 w-full text-sm rounded-lg border border-jj-grey/20 dark:border-gray-700 bg-transparent dark:bg-gray-800 px-3 py-2 text-gray-700 dark:text-gray-200"
+                          >
+                            {workoutDefs.map((d) => (
+                              <option key={d.id} value={String(d.id)}>{d.name}</option>
+                            ))}
+                          </select>
+                        )}
+                      </>
                     )}
                   </div>
                 )}
