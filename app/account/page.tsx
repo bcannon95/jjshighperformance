@@ -66,8 +66,13 @@ function SuccessMsg({ children }: { children: React.ReactNode }) {
 }
 
 export default function AccountPage() {
-  const { user } = useAuth();
+  const { user, clientId } = useAuth();
   const [active, setActive] = useState<SectionId>('profile');
+
+  // ── Session Credits ────────────────────────────────────────────────────────
+  const [sessionCredits, setSessionCredits] = useState<{
+    total_credits: number; used_credits: number; expires_at: string | null;
+  } | null>(null);
 
   // ── Profile ───────────────────────────────────────────────────────────────
   const [editingProfile, setEditingProfile] = useState(false);
@@ -109,6 +114,18 @@ export default function AccountPage() {
   const [passwordSaving, setPasswordSaving]   = useState(false);
   const [passwordError, setPasswordError]     = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
+
+  // ── Load session credits ───────────────────────────────────────────────────
+  useEffect(() => {
+    if (!clientId) return;
+    supabase
+      .from('session_credits')
+      .select('total_credits, used_credits, expires_at')
+      .eq('client_id', clientId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .then(({ data }) => setSessionCredits(data?.[0] ?? null));
+  }, [clientId]);
 
   // ── Load from user_metadata on mount ──────────────────────────────────────
   useEffect(() => {
@@ -528,10 +545,33 @@ export default function AccountPage() {
         {active === 'session-credits' && (
           <div className="max-w-2xl">
             <h3 className="font-heading text-2xl mb-6 text-gray-900 dark:text-white">Session Credits</h3>
-            <div className="text-center py-12 border border-dashed border-jj-grey/40 dark:border-gray-700 rounded-lg">
-              <Coins size={28} className="text-jj-grey/40 mx-auto mb-3" />
-              <p className="text-sm text-gray-500 dark:text-gray-400">No Session Credits</p>
-            </div>
+            {sessionCredits ? (
+              <div className="p-6 border border-jj-grey/30 dark:border-gray-700 rounded-lg space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">Remaining</span>
+                  <span className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {sessionCredits.total_credits - sessionCredits.used_credits}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">Used</span>
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{sessionCredits.used_credits} of {sessionCredits.total_credits}</span>
+                </div>
+                {sessionCredits.expires_at && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-500 dark:text-gray-400">Expires</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      {new Date(sessionCredits.expires_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-12 border border-dashed border-jj-grey/40 dark:border-gray-700 rounded-lg">
+                <Coins size={28} className="text-jj-grey/40 mx-auto mb-3" />
+                <p className="text-sm text-gray-500 dark:text-gray-400">No Session Credits</p>
+              </div>
+            )}
           </div>
         )}
 
