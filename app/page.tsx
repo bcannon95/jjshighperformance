@@ -26,7 +26,7 @@ const defaultProgressWidgets = [
   { label: 'Steps', value: null, unit: '', date: null, hidden: false },
   { label: 'Sleep', value: null, unit: '', date: null, hidden: false },
   { label: 'Caloric Burn', value: null, unit: '', date: null, hidden: false },
-  { label: 'Body Weight', value: 65, unit: 'kg', date: '4 Feb 2026', hidden: false },
+  { label: 'Body Weight', value: null, unit: 'kg', date: null, hidden: false },
   { label: 'Body Fat', value: null, unit: '', date: null, hidden: false },
   { label: 'Photos', value: null, unit: '', date: null, hidden: false },
   { label: 'Caloric Intake', value: null, unit: '', date: null, hidden: false },
@@ -83,12 +83,56 @@ function toDateStr(d: Date) {
 export default function Dashboard() {
   const { clientId } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [earnedBadges, setEarnedBadges] = useState<{ icon: string; name: string; date: string }[]>([]);
+  const [totalBadges, setTotalBadges] = useState(0);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [progressWidgets, setProgressWidgets] = useState(defaultProgressWidgets);
   const [showWidgetConfig, setShowWidgetConfig] = useState(false);
   const [draftWidgets, setDraftWidgets] = useState(defaultProgressWidgets);
   const [draggedWidget, setDraggedWidget] = useState<{ label: string; from: 'displayed' | 'hidden' } | null>(null);
+
+  // Load latest body weight + earned badges on mount
+  useEffect(() => {
+    if (!clientId) return;
+    // Latest body weight
+    supabase
+      .from('body_weight_logs')
+      .select('weight_kg, logged_at')
+      .eq('client_id', clientId)
+      .order('logged_at', { ascending: false })
+      .limit(1)
+      .then(({ data }) => {
+        if (data?.[0]) {
+          const { weight_kg, logged_at } = data[0];
+          const dateLabel = new Date(logged_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+          setProgressWidgets((prev) =>
+            prev.map((w) => w.label === 'Body Weight' ? { ...w, value: Number(weight_kg), date: dateLabel } : w)
+          );
+        }
+      });
+    // Top 3 earned badges + total count
+    Promise.all([
+      supabase
+        .from('client_badges')
+        .select('earned_at, badges(name, icon_url)')
+        .eq('client_id', clientId)
+        .order('earned_at', { ascending: false })
+        .limit(3),
+      supabase.from('badges').select('id', { count: 'exact', head: true }),
+    ]).then(([earnedRes, totalRes]) => {
+      if (earnedRes.data) {
+        setEarnedBadges(
+          earnedRes.data.map((r: any) => ({
+            icon: r.badges?.icon_url ?? '🏅',
+            name: r.badges?.name ?? 'Badge',
+            date: new Date(r.earned_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }),
+          }))
+        );
+      }
+      setTotalBadges(totalRes.count ?? 0);
+    });
+  }, [clientId]);
 
   // Calendar / date navigation
   const [selectedDate, setSelectedDate] = useState(() => toDateStr(new Date()));
@@ -384,7 +428,6 @@ export default function Dashboard() {
   }
 
   const visibleTasks = tasks.filter((t) => t.date === selectedDate);
-  const achievements = [{ icon: '🏆', name: 'First Workout', date: 'Jan 5, 2026' }, { icon: '🔥', name: '7-Day Streak', date: 'Jan 12, 2026' }, { icon: '💪', name: 'Strength Milestone', date: 'Jan 20, 2026' }];
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -561,9 +604,9 @@ export default function Dashboard() {
         View All
         </Link>
         </div>
-        <p className="text-sm text-jj-grey dark:text-gray-400 mb-4">You&apos;ve earned {achievements.length} of {achievements.length + 4} badges</p>
+        <p className="text-sm text-jj-grey dark:text-gray-400 mb-4">You&apos;ve earned {earnedBadges.length} of {totalBadges} badges</p>
         <div className="grid grid-cols-3 gap-3">
-        {achievements.map((a) => (
+        {earnedBadges.map((a) => (
         <div key={a.name} className="border-2 border-brand rounded-xl p-3 text-center bg-white dark:bg-gray-800">
         <div className="text-3xl mb-2">{a.icon}</div>
         <p className="text-sm font-bold text-gray-800 dark:text-white">{a.name}</p>
