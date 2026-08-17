@@ -21,7 +21,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, [pathname, router]);
 
   const publicPaths = ['/login', '/reset-password'];
-  const isPublic = publicPaths.includes(pathname);
+    const isPublic = publicPaths.includes(pathname) || pathname.startsWith('/admin');
 
   // Always render public pages immediately (login, reset-password).
   if (isPublic) return <>{children}</>;

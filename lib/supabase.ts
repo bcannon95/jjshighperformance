@@ -18,6 +18,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     flowType: 'implicit',
+    lock: async (_name, _acquireTimeout, fn) => fn(),
   },
 });
 
