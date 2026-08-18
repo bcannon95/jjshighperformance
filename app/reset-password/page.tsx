@@ -1,5 +1,4 @@
 'use client';
-
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
@@ -13,8 +12,13 @@ export default function ResetPasswordPage() {
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
+    // Detect whether this reset link was requested from the admin login page.
+    const adminFlag = new URLSearchParams(window.location.search).get('admin') === '1';
+    setIsAdmin(adminFlag);
+
     // Check immediately for an error in the URL hash (e.g. expired token).
     const hash = window.location.hash;
     if (hash.includes('error=')) {
@@ -54,8 +58,10 @@ export default function ResetPasswordPage() {
       setError('Password must be at least 8 characters.');
       return;
     }
+
     setError(null);
     setLoading(true);
+
     try {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) {
@@ -63,7 +69,7 @@ export default function ResetPasswordPage() {
         setError(error.message || 'Failed to update password. Please try again.');
       } else {
         setPageState('success');
-        setTimeout(() => { window.location.href = '/'; }, 2000);
+        setTimeout(() => { window.location.href = isAdmin ? '/admin/login' : '/'; }, 2000);
       }
     } catch (err) {
       console.error('[ResetPassword] unexpected error:', err);
@@ -99,7 +105,7 @@ export default function ResetPasswordPage() {
               This reset link is invalid or has expired.
             </p>
             <button
-              onClick={() => router.replace('/login')}
+              onClick={() => router.replace(isAdmin ? '/admin/login' : '/login')}
               className="text-sm text-brand font-medium hover:underline"
             >
               Back to sign in
@@ -112,6 +118,7 @@ export default function ResetPasswordPage() {
             <p className="text-sm text-jj-grey dark:text-gray-400 text-center mb-8">
               Choose a new password
             </p>
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1.5">
@@ -127,7 +134,6 @@ export default function ResetPasswordPage() {
                   placeholder="••••••••"
                 />
               </div>
-
               <div>
                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1.5">
                   Confirm Password
@@ -161,7 +167,7 @@ export default function ResetPasswordPage() {
         {pageState === 'success' && (
           <div className="text-center mt-4">
             <p className="text-sm text-gray-700 dark:text-gray-300">
-              Password updated. Taking you home…
+              {isAdmin ? 'Password updated. Taking you to admin sign in…' : 'Password updated. Taking you home…'}
             </p>
           </div>
         )}

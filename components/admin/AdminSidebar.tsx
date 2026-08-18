@@ -11,6 +11,8 @@ import {
   Library,
   CalendarDays,
   BarChart2,
+  Building2,
+  Receipt,
 } from 'lucide-react';
 
 const navItems = [
@@ -20,8 +22,10 @@ const navItems = [
   { label: 'Messages', href: '/admin/messages', icon: MessageSquare },
   { label: 'Groups', href: '/admin/groups', icon: Users2 },
   { label: 'Content Library', href: '/admin/content', icon: Library },
+  { label: 'Billing', href: '/admin/billing', icon: Receipt },
   { label: 'Scheduling', href: '/admin/scheduling', icon: CalendarDays },
   { label: 'Analytics', href: '/admin/analytics', icon: BarChart2 },
+  { label: 'Business', href: '/admin/business', icon: Building2 },
 ];
 
 export function AdminSidebar() {

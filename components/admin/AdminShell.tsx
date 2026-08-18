@@ -7,7 +7,7 @@ import { AdminSidebar } from './AdminSidebar';
 import { AdminTopBar } from './AdminTopBar';
 
 function AdminShellInner({ children }: { children: React.ReactNode }) {
-  const { session, trainer, loading } = useAdminAuth();
+  const { session, trainer, loading, signOut } = useAdminAuth();
   const router = useRouter();
   const pathname = usePathname();
   const isLoginPage = pathname === '/admin/login';
@@ -29,8 +29,29 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  if (loading || !session || !trainer) {
+  if (loading || !session) {
     return <div className="min-h-screen bg-jj-neutral dark:bg-gray-950" />;
+  }
+
+  if (!trainer) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-jj-neutral dark:bg-gray-950 px-4">
+        <div className="max-w-sm text-center">
+          <h1 className="text-lg font-semibold text-jj-grey dark:text-white mb-2">
+            Access not available
+          </h1>
+          <p className="text-sm text-jj-grey/70 dark:text-gray-400 mb-5">
+            This account isn&apos;t set up for admin access. Contact an administrator if you believe this is a mistake.
+          </p>
+          <button
+            onClick={signOut}
+            className="rounded-lg bg-brand text-white text-sm font-medium px-4 py-2 hover:opacity-90"
+          >
+            Sign out
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (

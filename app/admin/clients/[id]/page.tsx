@@ -170,6 +170,7 @@ export default function AdminClientDetailPage() {
           </dl>
         </div>
       </div>
+<p className="text-xs text-jj-grey/50 dark:text-gray-500">Admin view is read-only.</p>
     </div>
   );
 }
