@@ -470,11 +470,11 @@ export default function Dashboard() {
   const visibleTasks = tasks.filter((t) => t.date === selectedDate);
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-3 sm:p-6 max-w-4xl mx-auto">
       {/* THINGS TO DO TODAY */}
       <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-jj-grey/30 dark:border-gray-700 p-5 mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-heading text-lg tracking-widest text-gray-700 dark:text-gray-200 uppercase">
+          <h2 className="font-heading text-base sm:text-lg tracking-wide sm:tracking-widest text-gray-700 dark:text-gray-200 uppercase">
             Things To Do <span className="text-brand">{formatHeader(selectedDate)}</span>
           </h2>
           <div className="flex items-center gap-2 text-jj-blue">
@@ -490,7 +490,7 @@ export default function Dashboard() {
             <button
               onClick={goToday}
               disabled={selectedDate === todayStr}
-              className={`text-xs font-heading tracking-widest uppercase px-2 py-1 rounded transition-colors ${selectedDate === todayStr
+              className={`hidden sm:block text-xs font-heading tracking-widest uppercase px-2 py-1 rounded transition-colors ${selectedDate === todayStr
                   ? 'opacity-40 cursor-not-allowed'
                   : 'hover:text-jj-blue/70'
                 }`}
@@ -615,7 +615,7 @@ export default function Dashboard() {
             <button onClick={() => { setDraftWidgets(progressWidgets); setShowWidgetConfig(true); }}><Settings size={18} /></button>
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {progressWidgets.filter((w) => !w.hidden).map((w) => (
             <div
               key={w.label}
@@ -645,7 +645,7 @@ export default function Dashboard() {
         </Link>
         </div>
         <p className="text-sm text-jj-grey dark:text-gray-400 mb-4">You&apos;ve earned {earnedBadges.length} of {totalBadges} badges</p>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {earnedBadges.map((a) => (
         <div key={a.name} className="border-2 border-brand rounded-xl p-3 text-center bg-white dark:bg-gray-800">
         <div className="text-3xl mb-2">{a.icon}</div>

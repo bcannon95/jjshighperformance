@@ -61,7 +61,7 @@ export default function RootLayout({
           })();
         ` }} />
       </head>
-      <body className={`${bebasNeue.variable} ${rubik.variable} font-body bg-jj-neutral dark:bg-gray-950`} style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      <body className={`${bebasNeue.variable} ${rubik.variable} font-body bg-jj-neutral dark:bg-gray-950 overflow-x-hidden`} style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <ThemeProvider>
           <AuthProvider>
             <AppShell>{children}</AppShell>
