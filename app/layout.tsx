@@ -13,8 +13,14 @@ const bebasNeue = { variable: 'font-bebas-fallback' };
 const rubik = { variable: 'font-rubik-fallback' };
 
 export const metadata: Metadata = {
-  title: "JJ's High Performance - Client Portal",
+  title: "JJ's High Performance",
   description: 'Your personal high performance coaching platform',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: "JJ's HP",
+  },
 };
 
 export default function RootLayout({
@@ -25,10 +31,21 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+        <meta name="theme-color" content="#0a0a0a" />
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+        <link rel="manifest" href="/manifest.json" />
         <style dangerouslySetInnerHTML={{ __html: `
           .font-bebas-fallback { --font-bebas: 'Bebas Neue', 'Arial Narrow', 'Oswald', system-ui, sans-serif; }
           .font-rubik-fallback { --font-rubik: 'Rubik', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+        ` }} />
+        {/* Register service worker for PWA */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+              navigator.serviceWorker.register('/sw.js');
+            });
+          }
         ` }} />
         {/* Apply theme before first paint to avoid flash of wrong colour scheme */}
         <script dangerouslySetInnerHTML={{ __html: `
