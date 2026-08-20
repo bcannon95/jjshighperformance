@@ -25,7 +25,7 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <div className="w-16 bg-gray-900 flex flex-col items-center py-4 gap-2 shrink-0">
+    <div className="hidden md:flex w-16 bg-gray-900 flex-col items-center py-4 gap-2 shrink-0">
       <div className="w-10 h-10 bg-brand rounded-lg flex items-center justify-center mb-4">
         <span className="text-gray-900 font-bold text-lg">J</span>
       </div>

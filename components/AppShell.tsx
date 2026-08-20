@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useAuth } from './AuthProvider';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
+import BottomNav from './BottomNav';
 import { usePathname, useRouter } from 'next/navigation';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -34,11 +35,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen overflow-hidden">
+      {/* Sidebar — desktop only */}
       <Sidebar />
       <div className="flex flex-col flex-1 overflow-hidden">
         <TopBar />
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        {/* pb-16 clears the fixed bottom nav on mobile */}
+        <main className="flex-1 overflow-y-auto pb-16 md:pb-0">{children}</main>
       </div>
+      {/* Bottom nav — mobile only */}
+      <BottomNav />
     </div>
   );
 }

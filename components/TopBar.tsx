@@ -74,7 +74,7 @@ export default function TopBar() {
           <div className="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center">
             <span className="text-brand text-sm font-semibold">{initials}</span>
           </div>
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+          <span className="hidden sm:block text-sm font-medium text-gray-700 dark:text-gray-200">
             {displayName}
           </span>
           <ChevronDown size={16} className="text-gray-400" />
