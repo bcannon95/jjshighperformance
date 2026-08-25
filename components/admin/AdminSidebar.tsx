@@ -13,6 +13,7 @@ import {
   BarChart2,
   Building2,
   Receipt,
+  X,
 } from 'lucide-react';
 
 const navItems = [
@@ -28,15 +29,20 @@ const navItems = [
   { label: 'Business', href: '/admin/business', icon: Building2 },
 ];
 
-export function AdminSidebar() {
+interface AdminSidebarProps {
+  mobileOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function AdminSidebar({ mobileOpen, onClose }: AdminSidebarProps) {
   const pathname = usePathname();
 
-  return (
-    <aside className="hidden md:flex w-56 flex-col bg-jj-grey dark:bg-gray-900 text-white shrink-0">
-      <div className="h-16 flex items-center px-5 border-b border-white/10">
+  const navContent = (
+    <>
+      <div className="h-16 flex items-center px-5 border-b border-white/10 shrink-0">
         <img src="https://file.trainerize.com/10545129/banner/3d751025-ae5f-47db-b979-3052d4489009" alt="JJ High Performance" className="h-10 w-auto object-contain" />
       </div>
-      <nav className="flex-1 py-4 space-y-1">
+      <nav className="flex-1 py-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
           const isActive =
             item.href === '/admin'
@@ -48,6 +54,7 @@ export function AdminSidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onClose}
               className={`flex items-center gap-3 px-5 py-2.5 text-sm transition-colors ${
                 isActive
                   ? 'bg-brand text-white'
@@ -60,6 +67,32 @@ export function AdminSidebar() {
           );
         })}
       </nav>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop sidebar */}
+      <aside className="hidden md:flex w-56 flex-col bg-gray-900 text-white shrink-0">
+        {navContent}
+      </aside>
+
+      {/* Mobile drawer */}
+      {mobileOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+          <aside className="relative flex w-64 flex-col bg-gray-900 text-white">
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 text-white/60 hover:text-white"
+              aria-label="Close menu"
+            >
+              <X size={20} />
+            </button>
+            {navContent}
+          </aside>
+        </div>
+      )}
+    </>
   );
 }

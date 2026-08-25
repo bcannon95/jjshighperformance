@@ -131,7 +131,7 @@ export default function AdminClientsPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold text-jj-grey dark:text-white">Clients</h1>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Clients</h1>
         <button
           onClick={openModal}
           className="flex items-center gap-2 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:opacity-90"
@@ -141,15 +141,15 @@ export default function AdminClientsPage() {
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <div className="flex gap-1 rounded-lg bg-jj-neutral dark:bg-gray-800 p-1">
+        <div className="flex gap-1 rounded-lg bg-gray-100 dark:bg-gray-800 p-1">
           {statusTabs.map((tab) => (
             <button
               key={tab.value}
               onClick={() => setStatusFilter(tab.value)}
               className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
                 statusFilter === tab.value
-                  ? 'bg-white dark:bg-gray-700 text-jj-grey dark:text-white shadow-sm'
-                  : 'text-jj-grey/60 dark:text-gray-400'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-500 dark:text-gray-400'
               }`}
             >
               {tab.label}
@@ -161,13 +161,13 @@ export default function AdminClientsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search clients..."
-          className="rounded-lg border border-jj-grey/30 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-jj-grey dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
+          className="rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
         />
       </div>
 
       <div className="rounded-xl border border-jj-grey/20 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-jj-neutral dark:bg-gray-800 text-left text-jj-grey/60 dark:text-gray-400">
+          <thead className="bg-gray-100 dark:bg-gray-800 text-left text-gray-500 dark:text-gray-400">
             <tr>
               <th className="px-4 py-3 font-medium">Name</th>
               <th className="px-4 py-3 font-medium">Email</th>
@@ -181,27 +181,27 @@ export default function AdminClientsPage() {
             {!loading && filteredClients.map((client) => (
               <tr key={client.id} className="hover:bg-jj-neutral/50 dark:hover:bg-gray-800/50">
                 <td className="px-4 py-3">
-                  <Link href={`/admin/clients/${client.id}`} className="font-medium text-jj-grey dark:text-white hover:text-brand">
+                  <Link href={`/admin/clients/${client.id}`} className="font-medium text-gray-900 dark:text-white hover:text-brand">
                     {client.first_name} {client.last_name}
                   </Link>
                 </td>
-                <td className="px-4 py-3 text-jj-grey/70 dark:text-gray-400">{client.email}</td>
+                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{client.email}</td>
                 <td className="px-4 py-3">
                   <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${
                     client.status === 'active'
                       ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                       : client.status === 'pending'
                       ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                      : 'bg-jj-neutral dark:bg-gray-800 text-jj-grey dark:text-gray-300'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
                   }`}>
                     {client.status ?? 'unknown'}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-jj-grey/70 dark:text-gray-400 capitalize">{client.account_type ?? '—'}</td>
-                <td className="px-4 py-3 text-jj-grey/70 dark:text-gray-400">
+                <td className="px-4 py-3 text-gray-600 dark:text-gray-400 capitalize">{client.account_type ?? '—'}</td>
+                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
                   {client.trainers ? `${client.trainers.first_name ?? ''} ${client.trainers.last_name ?? ''}` : '—'}
                 </td>
-                <td className="px-4 py-3 text-jj-grey/70 dark:text-gray-400">
+                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
                   {client.last_signed_in ? new Date(client.last_signed_in).toLocaleDateString() : '—'}
                 </td>
               </tr>
@@ -209,8 +209,8 @@ export default function AdminClientsPage() {
           </tbody>
         </table>
 
-        {loading && <div className="px-4 py-8 text-center text-sm text-jj-grey/60 dark:text-gray-400">Loading clients...</div>}
-        {!loading && filteredClients.length === 0 && <div className="px-4 py-8 text-center text-sm text-jj-grey/60 dark:text-gray-400">No clients found.</div>}
+        {loading && <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">Loading clients...</div>}
+        {!loading && filteredClients.length === 0 && <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">No clients found.</div>}
       </div>
 
       {/* Add Client Modal */}
@@ -219,16 +219,16 @@ export default function AdminClientsPage() {
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowModal(false)} />
           <div className="relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-2xl shadow-xl">
             <div className="flex items-center justify-between px-6 py-4 border-b border-jj-grey/10 dark:border-gray-700">
-              <h2 className="text-base font-semibold text-jj-grey dark:text-white">Add New Client</h2>
-              <button onClick={() => setShowModal(false)} className="text-jj-grey/40 hover:text-jj-grey dark:hover:text-white">
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white">Add New Client</h2>
+              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-700 dark:hover:text-white">
                 <X size={20} />
               </button>
             </div>
 
             {saveSuccess ? (
               <div className="px-6 py-8 text-center">
-                <p className="text-base font-semibold text-jj-grey dark:text-white mb-2">Client added!</p>
-                <p className="text-sm text-jj-grey/60 dark:text-gray-400 mb-6">
+                <p className="text-base font-semibold text-gray-900 dark:text-white mb-2">Client added!</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
                   An invitation email has been sent to <strong>{form.email}</strong> so they can set their password.
                 </p>
                 <button
@@ -242,43 +242,43 @@ export default function AdminClientsPage() {
               <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-jj-grey/60 dark:text-gray-400 mb-1">First Name *</label>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">First Name *</label>
                     <input
                       required
                       value={form.first_name}
                       onChange={(e) => setForm({ ...form, first_name: e.target.value })}
-                      className="w-full rounded-lg border border-jj-grey/30 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-jj-grey dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
+                      className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-jj-grey/60 dark:text-gray-400 mb-1">Last Name *</label>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Last Name *</label>
                     <input
                       required
                       value={form.last_name}
                       onChange={(e) => setForm({ ...form, last_name: e.target.value })}
-                      className="w-full rounded-lg border border-jj-grey/30 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-jj-grey dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
+                      className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-jj-grey/60 dark:text-gray-400 mb-1">Email *</label>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Email *</label>
                   <input
                     required
                     type="email"
                     value={form.email}
                     onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    className="w-full rounded-lg border border-jj-grey/30 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-jj-grey dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-jj-grey/60 dark:text-gray-400 mb-1">Status</label>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Status</label>
                     <select
                       value={form.status}
                       onChange={(e) => setForm({ ...form, status: e.target.value })}
-                      className="w-full rounded-lg border border-jj-grey/30 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-jj-grey dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
+                      className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
                     >
                       <option value="active">Active</option>
                       <option value="pending">Pending</option>
@@ -286,11 +286,11 @@ export default function AdminClientsPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-jj-grey/60 dark:text-gray-400 mb-1">Account Type</label>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Account Type</label>
                     <select
                       value={form.account_type}
                       onChange={(e) => setForm({ ...form, account_type: e.target.value })}
-                      className="w-full rounded-lg border border-jj-grey/30 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-jj-grey dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
+                      className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
                     >
                       <option value="standard">Standard</option>
                       <option value="premium">Premium</option>
@@ -300,11 +300,11 @@ export default function AdminClientsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-jj-grey/60 dark:text-gray-400 mb-1">Trainer</label>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Trainer</label>
                   <select
                     value={form.trainer_id}
                     onChange={(e) => setForm({ ...form, trainer_id: e.target.value })}
-                    className="w-full rounded-lg border border-jj-grey/30 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-jj-grey dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
                   >
                     <option value="">— No trainer assigned —</option>
                     {trainers.map((t) => (
@@ -314,11 +314,11 @@ export default function AdminClientsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-jj-grey/60 dark:text-gray-400 mb-1">Location</label>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Location</label>
                   <select
                     value={form.location_id}
                     onChange={(e) => setForm({ ...form, location_id: e.target.value })}
-                    className="w-full rounded-lg border border-jj-grey/30 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-jj-grey dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
                   >
                     <option value="">— No location —</option>
                     {locations.map((l) => (
@@ -335,7 +335,7 @@ export default function AdminClientsPage() {
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="px-4 py-2 text-sm rounded-lg border border-jj-grey/30 dark:border-gray-700 text-jj-grey dark:text-gray-200"
+                    className="px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200"
                   >
                     Cancel
                   </button>

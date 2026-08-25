@@ -56,10 +56,10 @@ export default function AdminOverviewPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-jj-grey dark:text-white mb-1">
+      <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-1">
         Welcome back{trainer?.first_name ? `, ${trainer.first_name}` : ''}
       </h1>
-      <p className="text-sm text-jj-grey/60 dark:text-gray-400 mb-6">
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
         Here's what's happening across your business today.
       </p>
 
@@ -72,19 +72,19 @@ export default function AdminOverviewPage() {
               className="rounded-xl border border-jj-grey/20 dark:border-gray-700 bg-white dark:bg-gray-900 p-5"
             >
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm text-jj-grey/60 dark:text-gray-400">
+                <span className="text-sm text-gray-500 dark:text-gray-400">
                   {card.label}
                 </span>
                 <Icon size={18} className="text-brand" />
               </div>
-              <span className="text-2xl font-semibold text-jj-grey dark:text-white">
+              <span className="text-2xl font-semibold text-gray-900 dark:text-white">
                 {card.value ?? '—'}
               </span>
             </div>
           );
         })}
       </div>
-<p className="text-xs text-jj-grey/50 dark:text-gray-500">Admin view is read-only.</p>
+
     </div>
   );
 }

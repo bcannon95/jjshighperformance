@@ -62,10 +62,10 @@ export default function AdminBillingPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-jj-grey dark:text-white mb-1">
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-1">
           Billing
         </h1>
-        <p className="text-sm text-jj-grey/60 dark:text-gray-400">
+        <p className="text-sm text-gray-500 dark:text-gray-400">
           Subscriptions and invoices. This reflects billing records stored in the
           database, not a live payment processor feed.
         </p>
@@ -73,12 +73,12 @@ export default function AdminBillingPage() {
 
       <div className="rounded-xl border border-jj-grey/20 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden">
         <div className="px-4 py-3 border-b border-jj-grey/10 dark:border-gray-800">
-          <h2 className="text-sm font-semibold text-jj-grey dark:text-white">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
             Subscriptions
           </h2>
         </div>
         <table className="w-full text-sm">
-          <thead className="bg-jj-neutral dark:bg-gray-800 text-left text-jj-grey/60 dark:text-gray-400">
+          <thead className="bg-gray-100 dark:bg-gray-800 text-left text-gray-500 dark:text-gray-400">
             <tr>
               <th className="px-4 py-3 font-medium">Product</th>
               <th className="px-4 py-3 font-medium">Status</th>
@@ -93,19 +93,19 @@ export default function AdminBillingPage() {
                 key={sub.id}
                 className="hover:bg-jj-neutral/50 dark:hover:bg-gray-800/50"
               >
-                <td className="px-4 py-3 text-jj-grey dark:text-gray-200">
+                <td className="px-4 py-3 text-gray-700 dark:text-gray-200">
                   {sub.product_name ?? '—'}
                 </td>
-                <td className="px-4 py-3 text-jj-grey dark:text-gray-200 capitalize">
+                <td className="px-4 py-3 text-gray-700 dark:text-gray-200 capitalize">
                   {sub.status ?? '—'}
                 </td>
-                <td className="px-4 py-3 text-jj-grey dark:text-gray-200">
+                <td className="px-4 py-3 text-gray-700 dark:text-gray-200">
                   {formatMoney(sub.amount_cents, sub.currency)}
                 </td>
-                <td className="px-4 py-3 text-jj-grey dark:text-gray-200 capitalize">
+                <td className="px-4 py-3 text-gray-700 dark:text-gray-200 capitalize">
                   {sub.billing_period ?? '—'}
                 </td>
-                <td className="px-4 py-3 text-jj-grey dark:text-gray-200">
+                <td className="px-4 py-3 text-gray-700 dark:text-gray-200">
                   {sub.next_billing ?? '—'}
                 </td>
               </tr>
@@ -114,13 +114,13 @@ export default function AdminBillingPage() {
         </table>
 
         {loading && (
-          <div className="px-4 py-8 text-center text-sm text-jj-grey/60 dark:text-gray-400">
+          <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
             Loading subscriptions...
           </div>
         )}
 
         {!loading && subscriptions.length === 0 && (
-          <div className="px-4 py-8 text-center text-sm text-jj-grey/60 dark:text-gray-400">
+          <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
             No subscriptions yet.
           </div>
         )}
@@ -128,12 +128,12 @@ export default function AdminBillingPage() {
 
       <div className="rounded-xl border border-jj-grey/20 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden">
         <div className="px-4 py-3 border-b border-jj-grey/10 dark:border-gray-800">
-          <h2 className="text-sm font-semibold text-jj-grey dark:text-white">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
             Invoices
           </h2>
         </div>
         <table className="w-full text-sm">
-          <thead className="bg-jj-neutral dark:bg-gray-800 text-left text-jj-grey/60 dark:text-gray-400">
+          <thead className="bg-gray-100 dark:bg-gray-800 text-left text-gray-500 dark:text-gray-400">
             <tr>
               <th className="px-4 py-3 font-medium">Invoice #</th>
               <th className="px-4 py-3 font-medium">Status</th>
@@ -148,19 +148,19 @@ export default function AdminBillingPage() {
                 key={invoice.id}
                 className="hover:bg-jj-neutral/50 dark:hover:bg-gray-800/50"
               >
-                <td className="px-4 py-3 text-jj-grey dark:text-gray-200">
+                <td className="px-4 py-3 text-gray-700 dark:text-gray-200">
                   #{invoice.id}
                 </td>
-                <td className="px-4 py-3 text-jj-grey dark:text-gray-200 capitalize">
+                <td className="px-4 py-3 text-gray-700 dark:text-gray-200 capitalize">
                   {invoice.status ?? '—'}
                 </td>
-                <td className="px-4 py-3 text-jj-grey dark:text-gray-200">
+                <td className="px-4 py-3 text-gray-700 dark:text-gray-200">
                   {formatMoney(invoice.amount_cents, invoice.currency)}
                 </td>
-                <td className="px-4 py-3 text-jj-grey dark:text-gray-200">
+                <td className="px-4 py-3 text-gray-700 dark:text-gray-200">
                   {invoice.issued_at ?? '—'}
                 </td>
-                <td className="px-4 py-3 text-jj-grey dark:text-gray-200">
+                <td className="px-4 py-3 text-gray-700 dark:text-gray-200">
                   {invoice.paid_at ?? '—'}
                 </td>
               </tr>
@@ -169,19 +169,19 @@ export default function AdminBillingPage() {
         </table>
 
         {loading && (
-          <div className="px-4 py-8 text-center text-sm text-jj-grey/60 dark:text-gray-400">
+          <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
             Loading invoices...
           </div>
         )}
 
         {!loading && invoices.length === 0 && (
-          <div className="px-4 py-8 text-center text-sm text-jj-grey/60 dark:text-gray-400">
+          <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
             No invoices yet.
           </div>
         )}
       </div>
 
-      <p className="text-xs text-jj-grey/50 dark:text-gray-500">Admin view is read-only.</p>
+      
     </div>
   );
 }

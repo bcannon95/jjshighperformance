@@ -77,19 +77,19 @@ export default function AdminLoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-jj-neutral dark:bg-gray-950 px-4">
       <div className="w-full max-w-sm rounded-xl bg-white dark:bg-gray-900 border border-jj-grey/20 dark:border-gray-700 p-8 shadow-sm">
-        <h1 className="text-xl font-semibold text-jj-grey dark:text-white mb-1">
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">
           JJ Admin
         </h1>
 
         {mode === 'signin' && (
           <>
-            <p className="text-sm text-jj-grey/60 dark:text-gray-400 mb-6">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
               Sign in to manage your clients and team.
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-jj-grey dark:text-gray-200 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Email
                 </label>
                 <input
@@ -97,12 +97,12 @@ export default function AdminLoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-lg border border-jj-grey/30 dark:border-gray-700 bg-jj-neutral dark:bg-gray-800 px-3 py-2 text-sm text-jj-grey dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
                 />
               </div>
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="block text-sm font-medium text-jj-grey dark:text-gray-200">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                     Password
                   </label>
                   <button
@@ -118,7 +118,7 @@ export default function AdminLoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-lg border border-jj-grey/30 dark:border-gray-700 bg-jj-neutral dark:bg-gray-800 px-3 py-2 text-sm text-jj-grey dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
                 />
               </div>
 
@@ -137,13 +137,13 @@ export default function AdminLoginPage() {
 
         {mode === 'forgot' && !resetSent && (
           <>
-            <p className="text-sm text-jj-grey/60 dark:text-gray-400 mb-6">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
               Enter your email and we&apos;ll send you a link to reset your password.
             </p>
 
             <form onSubmit={handleForgotPassword} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-jj-grey dark:text-gray-200 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Email
                 </label>
                 <input
@@ -151,7 +151,7 @@ export default function AdminLoginPage() {
                   required
                   value={resetEmail}
                   onChange={(e) => setResetEmail(e.target.value)}
-                  className="w-full rounded-lg border border-jj-grey/30 dark:border-gray-700 bg-jj-neutral dark:bg-gray-800 px-3 py-2 text-sm text-jj-grey dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
                 />
               </div>
 
@@ -168,7 +168,7 @@ export default function AdminLoginPage() {
               <button
                 type="button"
                 onClick={backToSignIn}
-                className="w-full text-center text-xs text-jj-grey/60 dark:text-gray-400 hover:underline"
+                className="w-full text-center text-xs text-gray-500 dark:text-gray-400 hover:underline"
               >
                 Back to sign in
               </button>
@@ -178,7 +178,7 @@ export default function AdminLoginPage() {
 
         {mode === 'forgot' && resetSent && (
           <div className="text-center">
-            <p className="text-sm text-jj-grey/70 dark:text-gray-300 mb-6">
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
               If an account exists for that email, a password reset link is on its way. Check your inbox.
             </p>
             <button

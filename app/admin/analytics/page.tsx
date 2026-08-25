@@ -45,18 +45,18 @@ function BreakdownCard({ title, items }: { title: string; items: Breakdown[] }) 
   const max = Math.max(...items.map((i) => i.count), 1);
   return (
     <div className="rounded-xl border border-jj-grey/20 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden p-4">
-      <h2 className="mb-4 text-sm font-semibold text-jj-grey dark:text-white">{title}</h2>
+      <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">{title}</h2>
       {items.length === 0 ? (
-        <p className="text-sm text-jj-grey/60 dark:text-gray-400">No data yet.</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">No data yet.</p>
       ) : (
         <div className="flex flex-col gap-3">
           {items.map((item) => (
             <div key={item.label} className="flex items-center gap-3">
-              <span className="w-36 shrink-0 truncate text-sm text-jj-grey dark:text-gray-300">{item.label}</span>
-              <div className="h-2 flex-1 overflow-hidden rounded-full bg-jj-neutral dark:bg-gray-800">
+              <span className="w-36 shrink-0 truncate text-sm text-gray-700 dark:text-gray-300">{item.label}</span>
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
                 <div className="h-full bg-brand" style={{ width: (item.count / max) * 100 + '%' }} />
               </div>
-              <span className="w-8 shrink-0 text-right text-sm font-medium text-jj-grey dark:text-gray-100">{item.count}</span>
+              <span className="w-8 shrink-0 text-right text-sm font-medium text-gray-900 dark:text-gray-100">{item.count}</span>
             </div>
           ))}
         </div>
@@ -68,8 +68,8 @@ function BreakdownCard({ title, items }: { title: string; items: Breakdown[] }) 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-xl border border-jj-grey/20 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden p-4">
-      <p className="text-xs text-jj-grey/60 dark:text-gray-400">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-jj-grey dark:text-white">{value}</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
+      <p className="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{value}</p>
     </div>
   );
 }
@@ -145,10 +145,10 @@ export default function AnalyticsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold text-jj-grey dark:text-white">Analytics</h1>
+      <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Analytics</h1>
 
       {loading || !stats || !activity ? (
-        <p className="px-4 py-8 text-center text-sm text-jj-grey/60 dark:text-gray-400">Loading analytics...</p>
+        <p className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">Loading analytics...</p>
       ) : (
         <>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
@@ -171,8 +171,8 @@ export default function AnalyticsPage() {
           </div>
 
           <div className="rounded-xl border border-jj-grey/20 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden p-4">
-            <h2 className="mb-2 text-sm font-semibold text-jj-grey dark:text-white">Activity &amp; Engagement</h2>
-            <p className="mb-4 text-sm text-jj-grey/60 dark:text-gray-400">
+            <h2 className="mb-2 text-sm font-semibold text-gray-900 dark:text-white">Activity &amp; Engagement</h2>
+            <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
               These metrics will grow as clients start scheduling sessions, logging runs, and using session credits.
             </p>
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -185,7 +185,7 @@ export default function AnalyticsPage() {
         </>
       )}
 
-      <p className="text-xs text-jj-grey/50 dark:text-gray-500">Admin view is read-only.</p>
+      
     </div>
   );
 }

@@ -111,8 +111,8 @@ export default function GroupsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-jj-grey dark:text-white">Groups</h1>
-        <span className="text-sm text-jj-grey/60 dark:text-gray-400">
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Groups</h1>
+        <span className="text-sm text-gray-500 dark:text-gray-400">
           {groups.length} group{groups.length === 1 ? '' : 's'}
         </span>
       </div>
@@ -122,18 +122,18 @@ export default function GroupsPage() {
         placeholder="Search groups..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="rounded-lg border border-jj-grey/30 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-jj-grey dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand w-full max-w-sm"
+        className="rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand w-full max-w-sm"
       />
 
       <div className="space-y-4">
         {loading && (
-          <div className="rounded-xl border border-jj-grey/20 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-8 text-center text-sm text-jj-grey/60 dark:text-gray-400">
+          <div className="rounded-xl border border-jj-grey/20 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
             Loading groups...
           </div>
         )}
 
         {!loading && filteredGroups.length === 0 && (
-          <div className="rounded-xl border border-jj-grey/20 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-8 text-center text-sm text-jj-grey/60 dark:text-gray-400">
+          <div className="rounded-xl border border-jj-grey/20 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
             No groups found.
           </div>
         )}
@@ -164,31 +164,31 @@ export default function GroupsPage() {
                   )}
 
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-jj-grey dark:text-white">{group.name}</p>
+                    <p className="truncate font-medium text-gray-900 dark:text-white">{group.name}</p>
                     {group.description && (
-                      <p className="truncate text-sm text-jj-grey/60 dark:text-gray-400">{group.description}</p>
+                      <p className="truncate text-sm text-gray-500 dark:text-gray-400">{group.description}</p>
                     )}
                   </div>
 
-                  <div className="hidden shrink-0 items-center gap-6 text-sm text-jj-grey/60 dark:text-gray-400 sm:flex">
+                  <div className="hidden shrink-0 items-center gap-6 text-sm text-gray-500 dark:text-gray-400 sm:flex">
                     <span>{programName || 'No program'}</span>
                     <span>{leaderName || 'No leader'}</span>
                     <span>{groupMembers.length} member{groupMembers.length === 1 ? '' : 's'}</span>
                     <span>{formatDate(group.created_at)}</span>
                   </div>
 
-                  <span className="shrink-0 text-jj-grey/40 dark:text-gray-500">{isExpanded ? String.fromCharCode(9650) : String.fromCharCode(9660)}</span>
+                  <span className="shrink-0 text-gray-400 dark:text-gray-500">{isExpanded ? String.fromCharCode(9650) : String.fromCharCode(9660)}</span>
                 </button>
 
                 {isExpanded && (
                   <div className="border-t border-jj-grey/10 dark:border-gray-800">
                     {groupMembers.length === 0 ? (
-                      <p className="px-4 py-8 text-center text-sm text-jj-grey/60 dark:text-gray-400">
+                      <p className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
                         No members in this group yet.
                       </p>
                     ) : (
                       <table className="w-full text-sm">
-                        <thead className="bg-jj-neutral dark:bg-gray-800 text-left text-jj-grey/60 dark:text-gray-400">
+                        <thead className="bg-gray-100 dark:bg-gray-800 text-left text-gray-500 dark:text-gray-400">
                           <tr>
                             <th className="px-4 py-3 font-medium">Client</th>
                             <th className="px-4 py-3 font-medium">Role</th>
@@ -198,11 +198,11 @@ export default function GroupsPage() {
                         <tbody className="divide-y divide-jj-grey/10 dark:divide-gray-800">
                           {groupMembers.map((member) => (
                             <tr key={member.client_id} className="hover:bg-jj-neutral/50 dark:hover:bg-gray-800/50">
-                              <td className="px-4 py-3 text-jj-grey dark:text-gray-100">
+                              <td className="px-4 py-3 text-gray-900 dark:text-gray-100">
                                 {clientNames.get(member.client_id) || 'Unknown client'}
                               </td>
-                              <td className="px-4 py-3 text-jj-grey/70 dark:text-gray-300">{member.role || String.fromCharCode(8212)}</td>
-                              <td className="px-4 py-3 text-jj-grey/70 dark:text-gray-300">{formatDate(member.joined_at)}</td>
+                              <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{member.role || String.fromCharCode(8212)}</td>
+                              <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{formatDate(member.joined_at)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -215,7 +215,7 @@ export default function GroupsPage() {
           })}
       </div>
 
-      <p className="text-xs text-jj-grey/50 dark:text-gray-500">Admin view is read-only.</p>
+      
     </div>
   )
 }

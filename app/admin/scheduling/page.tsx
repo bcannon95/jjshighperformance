@@ -24,8 +24,8 @@ function statusBadgeClass(status: string | null) {
   const base = 'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium '
   if (status === 'completed') return base + 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
   if (status === 'missed' || status === 'cancelled') return base + 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
-  if (status === 'scheduled') return base + 'bg-brand/20 text-jj-grey dark:text-gray-100'
-  return base + 'bg-jj-neutral text-jj-grey/70 dark:bg-gray-800 dark:text-gray-400'
+  if (status === 'scheduled') return base + 'bg-brand/20 text-gray-900 dark:text-gray-100'
+  return base + 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
 }
 
 type TimeFilter = 'upcoming' | 'past' | 'all'
@@ -105,8 +105,8 @@ export default function SchedulingPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-jj-grey dark:text-white">Scheduling</h1>
-        <span className="text-sm text-jj-grey/60 dark:text-gray-400">
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Scheduling</h1>
+        <span className="text-sm text-gray-500 dark:text-gray-400">
           {filteredEvents.length} event{filteredEvents.length === 1 ? '' : 's'}
         </span>
       </div>
@@ -117,13 +117,13 @@ export default function SchedulingPage() {
           placeholder="Search by client or workout..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="rounded-lg border border-jj-grey/30 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-jj-grey dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand w-full max-w-sm"
+          className="rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand w-full max-w-sm"
         />
 
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-lg border border-jj-grey/30 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-jj-grey dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
+          className="rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
         >
           <option value="all">All statuses</option>
           {statusOptions.map((s) => (
@@ -131,7 +131,7 @@ export default function SchedulingPage() {
           ))}
         </select>
 
-        <div className="flex rounded-lg border border-jj-grey/30 dark:border-gray-700 overflow-hidden">
+        <div className="flex rounded-lg border border-gray-300 dark:border-gray-700 overflow-hidden">
           {(['upcoming', 'past', 'all'] as TimeFilter[]).map((option) => (
             <button
               key={option}
@@ -140,8 +140,8 @@ export default function SchedulingPage() {
               className={
                 'px-3 py-2 text-sm capitalize ' +
                 (timeFilter === option
-                  ? 'bg-brand text-jj-grey font-medium'
-                  : 'bg-white dark:bg-gray-800 text-jj-grey dark:text-gray-100 hover:bg-jj-neutral dark:hover:bg-gray-700')
+                  ? 'bg-brand text-gray-900 font-medium'
+                  : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:bg-jj-neutral dark:hover:bg-gray-700')
               }
             >
               {option}
@@ -152,7 +152,7 @@ export default function SchedulingPage() {
 
       <div className="rounded-xl border border-jj-grey/20 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-jj-neutral dark:bg-gray-800 text-left text-jj-grey/60 dark:text-gray-400">
+          <thead className="bg-gray-100 dark:bg-gray-800 text-left text-gray-500 dark:text-gray-400">
             <tr>
               <th className="px-4 py-3 font-medium">Date</th>
               <th className="px-4 py-3 font-medium">Client</th>
@@ -164,7 +164,7 @@ export default function SchedulingPage() {
           <tbody className="divide-y divide-jj-grey/10 dark:divide-gray-800">
             {loading && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-sm text-jj-grey/60 dark:text-gray-400">
+                <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
                   Loading schedule...
                 </td>
               </tr>
@@ -172,7 +172,7 @@ export default function SchedulingPage() {
 
             {!loading && filteredEvents.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-sm text-jj-grey/60 dark:text-gray-400">
+                <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
                   No scheduled sessions found.
                 </td>
               </tr>
@@ -181,10 +181,10 @@ export default function SchedulingPage() {
             {!loading &&
               filteredEvents.map((event) => (
                 <tr key={event.id} className="hover:bg-jj-neutral/50 dark:hover:bg-gray-800/50">
-                  <td className="px-4 py-3 text-jj-grey dark:text-gray-100 whitespace-nowrap">{formatDate(event.scheduled_date)}</td>
-                  <td className="px-4 py-3 text-jj-grey dark:text-gray-100">{clientNames.get(event.client_id) || 'Unknown client'}</td>
-                  <td className="px-4 py-3 text-jj-grey/70 dark:text-gray-300 capitalize">{event.event_type || String.fromCharCode(8212)}</td>
-                  <td className="px-4 py-3 text-jj-grey/70 dark:text-gray-300">
+                  <td className="px-4 py-3 text-gray-900 dark:text-gray-100 whitespace-nowrap">{formatDate(event.scheduled_date)}</td>
+                  <td className="px-4 py-3 text-gray-900 dark:text-gray-100">{clientNames.get(event.client_id) || 'Unknown client'}</td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-300 capitalize">{event.event_type || String.fromCharCode(8212)}</td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
                     {event.workout_def_id !== null ? workoutNames.get(event.workout_def_id) || 'Unknown workout' : String.fromCharCode(8212)}
                   </td>
                   <td className="px-4 py-3">
@@ -196,7 +196,7 @@ export default function SchedulingPage() {
         </table>
       </div>
 
-      <p className="text-xs text-jj-grey/50 dark:text-gray-500">Admin view is read-only.</p>
+      
     </div>
   )
 }
