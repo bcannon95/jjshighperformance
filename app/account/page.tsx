@@ -32,24 +32,14 @@ const NOTIFICATION_CATEGORIES = [
   'Challenge Activities',
 ];
 
-const TRANSACTIONS = [
-  {
-    name: '2-Week Extension - Preseason Package',
-    kind: 'Add-on',
-    status: 'Expired',
-    price: '$0.00',
-    note: '(100% discount)',
-    expires: '5 Feb 2026',
-  },
-  {
-    name: '8-Week Performance Foundations In-Season Package',
-    kind: 'Main Product',
-    status: 'Expired',
-    price: '$0.00',
-    note: '(100% discount)',
-    expires: '5 Feb 2026',
-  },
-];
+type Invoice = {
+  id: number;
+  amount_cents: number | null;
+  currency: string | null;
+  status: string | null;
+  issued_at: string | null;
+  paid_at: string | null;
+};
 
 const INPUT_CLS =
   'w-full px-3 py-2 border border-jj-grey/40 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand';
@@ -73,6 +63,10 @@ export default function AccountPage() {
   const [sessionCredits, setSessionCredits] = useState<{
     total_credits: number; used_credits: number; expires_at: string | null;
   } | null>(null);
+
+  // ── Invoices ───────────────────────────────────────────────────────────────
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [invoicesLoading, setInvoicesLoading] = useState(false);
 
   // ── Profile ───────────────────────────────────────────────────────────────
   const [editingProfile, setEditingProfile] = useState(false);
@@ -125,6 +119,21 @@ export default function AccountPage() {
       .order('created_at', { ascending: false })
       .limit(1)
       .then(({ data }) => setSessionCredits(data?.[0] ?? null));
+  }, [clientId]);
+
+  // ── Load invoices ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!clientId) return;
+    setInvoicesLoading(true);
+    supabase
+      .from('invoices')
+      .select('id, amount_cents, currency, status, issued_at, paid_at')
+      .eq('client_id', clientId)
+      .order('issued_at', { ascending: false })
+      .then(({ data }) => {
+        setInvoices((data as Invoice[]) ?? []);
+        setInvoicesLoading(false);
+      });
   }, [clientId]);
 
   // ── Load from user_metadata on mount ──────────────────────────────────────
@@ -620,27 +629,39 @@ export default function AccountPage() {
         {active === 'transactions' && (
           <div className="max-w-2xl">
             <h3 className="font-heading text-2xl mb-6 text-gray-900 dark:text-white">Transaction History</h3>
-            <div className="space-y-4">
-              {TRANSACTIONS.map((t) => (
-                <div key={t.name} className="p-4 border border-jj-grey/30 dark:border-gray-700 rounded-lg">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{t.name}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t.kind}</p>
+            {invoicesLoading ? (
+              <p className="text-sm text-gray-400 dark:text-gray-500">Loading transactions...</p>
+            ) : invoices.length === 0 ? (
+              <p className="text-sm text-gray-400 dark:text-gray-500">No transactions yet.</p>
+            ) : (
+              <div className="space-y-4">
+                {invoices.map((inv) => {
+                  const amount = inv.amount_cents != null
+                    ? (inv.amount_cents / 100).toLocaleString(undefined, { style: 'currency', currency: inv.currency ?? 'AUD' })
+                    : '—';
+                  return (
+                    <div key={inv.id} className="p-4 border border-jj-grey/30 dark:border-gray-700 rounded-lg">
+                      <div className="flex items-start justify-between gap-4">
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Invoice #{inv.id}</p>
+                        <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-jj-grey/15 text-jj-grey dark:text-gray-400 shrink-0 capitalize">
+                          {inv.status ?? 'unknown'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between mt-3 text-sm">
+                        <span className="text-gray-700 dark:text-gray-300">{amount}</span>
+                        <span className="text-gray-500 dark:text-gray-400">
+                          {inv.paid_at
+                            ? `Paid ${new Date(inv.paid_at).toLocaleDateString()}`
+                            : inv.issued_at
+                            ? `Issued ${new Date(inv.issued_at).toLocaleDateString()}`
+                            : '—'}
+                        </span>
+                      </div>
                     </div>
-                    <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-jj-grey/15 text-jj-grey dark:text-gray-400 shrink-0">
-                      {t.status}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between mt-3 text-sm">
-                    <span className="text-gray-700 dark:text-gray-300">
-                      {t.price} <span className="text-gray-400 dark:text-gray-500">{t.note}</span>
-                    </span>
-                    <span className="text-gray-500 dark:text-gray-400">Expires on {t.expires}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
