@@ -50,7 +50,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       setLoading(false);
     } else {
       const timeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Auth init timed out after 8s')), 8000)
+        setTimeout(() => reject(new Error('Auth init timed out after 20s')), 20000)
       );
 
       Promise.race([supabase.auth.getSession(), timeout])
