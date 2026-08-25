@@ -16,6 +16,8 @@ self.addEventListener('activate', event => {
 // Network-first: skip Supabase and API calls, use cache as fallback for everything else
 self.addEventListener('fetch', event => {
   const url = event.request.url;
+  // Only handle http/https — browser extensions use chrome-extension:// etc.
+  if (!url.startsWith('http')) return;
   if (
     url.includes('supabase.co') ||
     url.includes('/api/') ||
