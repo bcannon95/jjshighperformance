@@ -5,15 +5,15 @@ import {
   LayoutDashboard,
   FolderOpen,
   MessageSquare,
-  Utensils,
+  Activity,
   BarChart2,
 } from 'lucide-react';
 
 const navItems = [
   { icon: LayoutDashboard, href: '/', label: 'Home' },
   { icon: FolderOpen, href: '/training', label: 'Training' },
+  { icon: Activity, href: '/runs', label: 'Runs' },
   { icon: MessageSquare, href: '/messages', label: 'Messages' },
-  { icon: Utensils, href: '/meal-plan', label: 'Meals' },
   { icon: BarChart2, href: '/progress', label: 'Progress' },
 ];
 

@@ -9,11 +9,13 @@ import {
   Utensils,
   BarChart2,
   Award,
+  Activity,
 } from 'lucide-react';
 
 const navItems = [
   { icon: LayoutDashboard, href: '/', label: 'Dashboard' },
   { icon: FolderOpen, href: '/training', label: 'Training Program' },
+  { icon: Activity, href: '/runs', label: 'Runs' },
   { icon: MessageSquare, href: '/messages', label: 'Messages' },
   { icon: Users, href: '/groups', label: 'Groups' },
   { icon: Utensils, href: '/meal-plan', label: 'Meal Plan' },
