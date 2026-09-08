@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import dynamic from 'next/dynamic'
-import { MapPin, Square, ChevronRight, Activity } from 'lucide-react'
+import { MapPin, Square, ChevronRight, Activity, ChevronDown, Map } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/components/AuthProvider'
 
@@ -75,7 +75,8 @@ export default function RunsPage() {
   const { clientId } = useAuth()
 
   // View state
-  const [mode, setMode] = useState<'idle' | 'running'>('idle')
+  const [mode, setMode]       = useState<'idle' | 'running'>('idle')
+  const [mapOpen, setMapOpen] = useState(false)
 
   // Run history
   const [runs, setRuns] = useState<Run[]>([])
@@ -149,6 +150,7 @@ export default function RunsPage() {
 
     const start = new Date()
     startTimeRef.current = start
+    setMapOpen(false)
     setMode('running')
 
     // Prevent screen sleep during a run (best-effort)
@@ -270,33 +272,13 @@ export default function RunsPage() {
       ? [activePoints[activePoints.length - 1].lat, activePoints[activePoints.length - 1].lng]
       : null
 
-  // ── Running mode UI ───────────────────────────────────────────────────────
+  // ── Running mode — full-screen map (Google/Apple Maps style) ───────────────
 
-  if (mode === 'running') {
+  if (mode === 'running' && mapOpen) {
     return (
-      <div className="flex flex-col h-full bg-gray-950">
-        {/* Stats */}
-        <div className="bg-gray-900 px-6 py-5 shrink-0">
-          <div className="text-5xl font-mono font-bold text-white text-center tabular-nums mb-4">
-            {fmtDuration(elapsed)}
-          </div>
-          <div className="flex justify-center gap-16">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-brand">{fmtDistance(distanceM)}</div>
-              <div className="text-xs text-gray-400 mt-0.5 uppercase tracking-wider">Distance</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-brand">{fmtPace(paceSecPerKm)}</div>
-              <div className="text-xs text-gray-400 mt-0.5 uppercase tracking-wider">Pace /km</div>
-            </div>
-          </div>
-          {gpsError && (
-            <p className="text-xs text-red-400 text-center mt-3">{gpsError}</p>
-          )}
-        </div>
-
-        {/* Map */}
-        <div className="flex-1 min-h-0">
+      <div className="fixed inset-0 z-50 bg-gray-950">
+        {/* Full-screen map */}
+        <div className="absolute inset-0">
           {activePoints.length === 0 ? (
             <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-gray-900 text-gray-400">
               <MapPin size={32} className="animate-pulse text-brand" />
@@ -307,15 +289,107 @@ export default function RunsPage() {
           )}
         </div>
 
-        {/* Stop */}
-        <div className="bg-gray-900 px-6 py-5 shrink-0">
+        {/* Stats card — floating top overlay */}
+        <div
+          className="absolute left-4 right-4 z-[1000]"
+          style={{ top: 'calc(env(safe-area-inset-top) + 16px)' }}
+        >
+          <div className="bg-gray-900/85 backdrop-blur-md rounded-2xl px-5 py-4 border border-white/10 shadow-xl">
+            <div className="text-4xl font-mono font-bold text-white text-center tabular-nums mb-3">
+              {fmtDuration(elapsed)}
+            </div>
+            <div className="flex justify-center gap-12">
+              <div className="text-center">
+                <div className="text-xl font-bold text-brand">{fmtDistance(distanceM)}</div>
+                <div className="text-[11px] text-gray-400 uppercase tracking-wider mt-0.5">Distance</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xl font-bold text-brand">{fmtPace(paceSecPerKm)}</div>
+                <div className="text-[11px] text-gray-400 uppercase tracking-wider mt-0.5">Pace /km</div>
+              </div>
+            </div>
+            {gpsError && <p className="text-xs text-red-400 text-center mt-2">{gpsError}</p>}
+          </div>
+        </div>
+
+        {/* Bottom controls — collapse + stop */}
+        <div
+          className="absolute left-0 right-0 z-[1000] px-6 flex items-center justify-between"
+          style={{ bottom: 'calc(env(safe-area-inset-bottom) + 24px)' }}
+        >
+          {/* Collapse map */}
+          <button
+            onClick={() => setMapOpen(false)}
+            className="w-12 h-12 rounded-full bg-gray-900/85 backdrop-blur-md border border-white/10 flex items-center justify-center text-white shadow-lg"
+          >
+            <ChevronDown size={20} />
+          </button>
+
+          {/* Stop button */}
           <button
             onClick={stopRun}
             disabled={saving}
-            className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 text-lg transition-colors"
+            className="w-20 h-20 rounded-full bg-red-600 hover:bg-red-700 disabled:opacity-50 flex items-center justify-center shadow-2xl shadow-red-900/60 transition-colors"
           >
-            <Square size={20} fill="white" />
-            {saving ? 'Saving…' : 'Stop Run'}
+            {saving ? (
+              <span className="text-white text-xs font-bold">Saving</span>
+            ) : (
+              <Square size={28} fill="white" color="white" />
+            )}
+          </button>
+
+          {/* Spacer for symmetry */}
+          <div className="w-12" />
+        </div>
+      </div>
+    )
+  }
+
+  // ── Running mode — stats only (map minimised) ──────────────────────────────
+
+  if (mode === 'running') {
+    return (
+      <div className="flex flex-col h-full bg-gray-950">
+        {/* Stats */}
+        <div className="flex-1 flex flex-col items-center justify-center px-6">
+          <div className="text-7xl font-mono font-bold text-white tabular-nums mb-10">
+            {fmtDuration(elapsed)}
+          </div>
+          <div className="flex gap-16 mb-10">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-brand">{fmtDistance(distanceM)}</div>
+              <div className="text-xs text-gray-400 uppercase tracking-wider mt-1">Distance</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-brand">{fmtPace(paceSecPerKm)}</div>
+              <div className="text-xs text-gray-400 uppercase tracking-wider mt-1">Pace /km</div>
+            </div>
+          </div>
+
+          {gpsError && <p className="text-xs text-red-400 text-center mb-4">{gpsError}</p>}
+
+          {/* Show map button */}
+          <button
+            onClick={() => setMapOpen(true)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-gray-800 hover:bg-gray-700 rounded-full text-sm text-gray-300 transition-colors"
+          >
+            <Map size={16} className="text-brand" />
+            Show Map
+          </button>
+        </div>
+
+        {/* Stop button */}
+        <div className="flex justify-center pb-10" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 32px)' }}>
+          <button
+            onClick={stopRun}
+            disabled={saving}
+            className="w-20 h-20 rounded-full bg-red-600 hover:bg-red-700 disabled:opacity-50 flex items-center justify-center shadow-xl transition-colors"
+          >
+            {saving ? (
+              <span className="text-white text-xs font-bold">Saving</span>
+            ) : (
+              <Square size={28} fill="white" color="white" />
+            )}
           </button>
         </div>
       </div>
