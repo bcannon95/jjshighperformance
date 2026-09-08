@@ -1,6 +1,6 @@
 'use client'
 import { useEffect } from 'react'
-import { MapContainer, TileLayer, Polyline, CircleMarker, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Polyline, CircleMarker, Circle, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 
 type Point = { lat: number; lng: number }
@@ -33,10 +33,12 @@ export default function RunMapInner({
   points,
   center,
   fit = false,
+  accuracyM,
 }: {
   points: Point[]
   center: [number, number] | null
   fit?: boolean
+  accuracyM?: number | null
 }) {
   const defaultCenter: [number, number] = center ?? [-33.865, 151.209]
   const positions = points.map((p) => [p.lat, p.lng] as [number, number])
@@ -82,6 +84,19 @@ export default function RunMapInner({
           fillColor="#d4de26"
           fillOpacity={1}
           weight={2}
+        />
+      )}
+
+      {/* GPS accuracy circle — radius in real-world metres */}
+      {last && accuracyM != null && accuracyM > 0 && (
+        <Circle
+          center={last}
+          radius={accuracyM}
+          color="#d4de26"
+          fillColor="#d4de26"
+          fillOpacity={0.12}
+          weight={1}
+          opacity={0.4}
         />
       )}
 

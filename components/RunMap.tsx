@@ -15,10 +15,12 @@ export default function RunMap({
   points,
   center,
   fit = false,
+  accuracyM,
 }: {
   points: Point[]
   center: [number, number] | null
   fit?: boolean
+  accuracyM?: number | null
 }) {
-  return <RunMapInner points={points} center={center} fit={fit} />
+  return <RunMapInner points={points} center={center} fit={fit} accuracyM={accuracyM} />
 }

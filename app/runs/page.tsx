@@ -391,7 +391,7 @@ export default function RunsPage() {
               <span className="text-sm">Acquiring GPS signal…</span>
             </div>
           ) : (
-            <RunMap points={activePoints} center={mapCenter} />
+            <RunMap points={activePoints} center={mapCenter} accuracyM={gpsAccuracy} />
           )}
         </div>
 
