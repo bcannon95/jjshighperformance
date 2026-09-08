@@ -14,6 +14,56 @@ const RunMap = dynamic(() => import('@/components/RunMap'), {
   ),
 })
 
+// ── Elevation profile chart ──────────────────────────────────────────────────
+
+function ElevationProfile({ points }: { points: { altitude_m: number | null }[] }) {
+  const alts = points.map((p) => p.altitude_m).filter((a): a is number => a !== null)
+  if (alts.length < 2) return null
+
+  const min = Math.min(...alts)
+  const max = Math.max(...alts)
+  const range = max - min || 1
+  const W = 100
+  const H = 40
+  const pad = 2
+
+  const coords = alts.map((a, i) => {
+    const x = pad + (i / (alts.length - 1)) * (W - pad * 2)
+    const y = pad + (1 - (a - min) / range) * (H - pad * 2)
+    return `${x},${y}`
+  })
+
+  const line  = coords.join(' ')
+  const area  = `${pad},${H - pad} ${line} ${W - pad},${H - pad}`
+  const minAlt = Math.round(min)
+  const maxAlt = Math.round(max)
+
+  return (
+    <div className="relative">
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        className="w-full"
+        style={{ height: 56 }}
+        preserveAspectRatio="none"
+      >
+        <defs>
+          <linearGradient id="elev-fill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor="#d4de26" stopOpacity="0.5" />
+            <stop offset="100%" stopColor="#d4de26" stopOpacity="0.03" />
+          </linearGradient>
+        </defs>
+        <polygon points={area} fill="url(#elev-fill)" />
+        <polyline points={line} fill="none" stroke="#d4de26" strokeWidth="1.5" strokeLinejoin="round" />
+      </svg>
+      {/* Min / max labels */}
+      <div className="absolute inset-x-0 top-0 flex justify-between px-0.5">
+        <span className="text-[10px] text-gray-400">{minAlt} m</span>
+        <span className="text-[10px] text-gray-400">{maxAlt} m</span>
+      </div>
+    </div>
+  )
+}
+
 // ── Types ───────────────────────────────────────────────────────────────────
 
 type RunPoint = { lat: number; lng: number; altitude_m: number | null; recorded_at: string }
@@ -346,6 +396,19 @@ export default function RunsPage() {
           </div>
         </div>
 
+        {/* Elevation profile — floating strip above bottom controls */}
+        {activePoints.some((p) => p.altitude_m !== null) && (
+          <div
+            className="absolute left-4 right-4 z-[1000]"
+            style={{ bottom: 'calc(env(safe-area-inset-bottom) + 124px)' }}
+          >
+            <div className="bg-gray-900/80 backdrop-blur-md rounded-xl px-3 pt-3 pb-2 border border-white/10">
+              <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Elevation</div>
+              <ElevationProfile points={activePoints} />
+            </div>
+          </div>
+        )}
+
         {/* Bottom controls — collapse + stop */}
         <div
           className="absolute left-0 right-0 z-[1000] px-6 flex items-center justify-between"
@@ -509,23 +572,31 @@ export default function RunsPage() {
                 </button>
 
                 {isExpanded && (
-                  <div className="h-64 border-t border-jj-grey/20 dark:border-gray-700">
-                    {loadingPoints ? (
-                      <div className="h-full flex items-center justify-center text-sm text-gray-400">
-                        Loading route…
+                  <>
+                    <div className="h-64 border-t border-jj-grey/20 dark:border-gray-700">
+                      {loadingPoints ? (
+                        <div className="h-full flex items-center justify-center text-sm text-gray-400">
+                          Loading route…
+                        </div>
+                      ) : selectedRunPoints.length === 0 ? (
+                        <div className="h-full flex items-center justify-center text-sm text-gray-400">
+                          No GPS points recorded for this run.
+                        </div>
+                      ) : (
+                        <RunMap
+                          points={selectedRunPoints}
+                          center={[selectedRunPoints[0].lat, selectedRunPoints[0].lng]}
+                          fit
+                        />
+                      )}
+                    </div>
+                    {selectedRunPoints.some((p) => p.altitude_m !== null) && (
+                      <div className="border-t border-jj-grey/20 dark:border-gray-700 px-4 pt-3 pb-4 bg-white dark:bg-gray-800">
+                        <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Elevation Profile</div>
+                        <ElevationProfile points={selectedRunPoints} />
                       </div>
-                    ) : selectedRunPoints.length === 0 ? (
-                      <div className="h-full flex items-center justify-center text-sm text-gray-400">
-                        No GPS points recorded for this run.
-                      </div>
-                    ) : (
-                      <RunMap
-                        points={selectedRunPoints}
-                        center={[selectedRunPoints[0].lat, selectedRunPoints[0].lng]}
-                        fit
-                      />
                     )}
-                  </div>
+                  </>
                 )}
               </div>
             )
