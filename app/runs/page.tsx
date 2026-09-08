@@ -16,7 +16,7 @@ const RunMap = dynamic(() => import('@/components/RunMap'), {
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
-type RunPoint = { lat: number; lng: number; recorded_at: string }
+type RunPoint = { lat: number; lng: number; altitude_m: number | null; recorded_at: string }
 
 type Run = {
   id: number
@@ -25,6 +25,7 @@ type Run = {
   distance_m: number
   duration_s: number
   avg_pace_s_per_km: number | null
+  elevation_gain_m: number | null
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -61,6 +62,10 @@ function fmtDistance(m: number): string {
   return `${(m / 1000).toFixed(2)} km`
 }
 
+function fmtElevation(m: number): string {
+  return `+${Math.round(m)} m`
+}
+
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-AU', {
     day: 'numeric',
@@ -83,11 +88,12 @@ export default function RunsPage() {
   const [loadingRuns, setLoadingRuns] = useState(true)
 
   // Active run
-  const [activePoints, setActivePoints] = useState<RunPoint[]>([])
-  const [elapsed, setElapsed]           = useState(0)
-  const [distanceM, setDistanceM]       = useState(0)
-  const [gpsError, setGpsError]         = useState<string | null>(null)
-  const [saving, setSaving]             = useState(false)
+  const [activePoints, setActivePoints]     = useState<RunPoint[]>([])
+  const [elapsed, setElapsed]               = useState(0)
+  const [distanceM, setDistanceM]           = useState(0)
+  const [elevationGainM, setElevationGainM] = useState(0)
+  const [gpsError, setGpsError]             = useState<string | null>(null)
+  const [saving, setSaving]                 = useState(false)
 
   // Selected history run (route view)
   const [selectedRunId, setSelectedRunId]       = useState<number | null>(null)
@@ -95,12 +101,14 @@ export default function RunsPage() {
   const [loadingPoints, setLoadingPoints]       = useState(false)
 
   // Refs to avoid stale closures in callbacks
-  const startTimeRef   = useRef<Date | null>(null)
-  const watchIdRef     = useRef<number | null>(null)
-  const timerRef       = useRef<ReturnType<typeof setInterval> | null>(null)
-  const lastPointRef   = useRef<RunPoint | null>(null)
-  const distanceMRef   = useRef(0)
-  const elapsedRef     = useRef(0)
+  const startTimeRef      = useRef<Date | null>(null)
+  const watchIdRef        = useRef<number | null>(null)
+  const timerRef          = useRef<ReturnType<typeof setInterval> | null>(null)
+  const lastPointRef      = useRef<RunPoint | null>(null)
+  const distanceMRef      = useRef(0)
+  const elapsedRef        = useRef(0)
+  const elevationGainMRef = useRef(0)
+  const lastAltitudeRef   = useRef<number | null>(null)
 
   // Sync refs
   useEffect(() => { distanceMRef.current = distanceM }, [distanceM])
@@ -113,7 +121,7 @@ export default function RunsPage() {
     setLoadingRuns(true)
     const { data } = await supabase
       .from('runs')
-      .select('id, started_at, finished_at, distance_m, duration_s, avg_pace_s_per_km')
+      .select('id, started_at, finished_at, distance_m, duration_s, avg_pace_s_per_km, elevation_gain_m')
       .eq('client_id', clientId)
       .not('finished_at', 'is', null)
       .order('started_at', { ascending: false })
@@ -144,9 +152,12 @@ export default function RunsPage() {
     setActivePoints([])
     setDistanceM(0)
     setElapsed(0)
-    lastPointRef.current  = null
-    distanceMRef.current  = 0
-    elapsedRef.current    = 0
+    setElevationGainM(0)
+    lastPointRef.current      = null
+    distanceMRef.current      = 0
+    elapsedRef.current        = 0
+    elevationGainMRef.current = 0
+    lastAltitudeRef.current   = null
 
     const start = new Date()
     startTimeRef.current = start
@@ -168,11 +179,26 @@ export default function RunsPage() {
     // GPS watch
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
+        const altitude = pos.coords.altitude
         const point: RunPoint = {
           lat:         pos.coords.latitude,
           lng:         pos.coords.longitude,
+          altitude_m:  altitude !== null ? Math.round(altitude * 10) / 10 : null,
           recorded_at: new Date().toISOString(),
         }
+
+        // Elevation gain: only count rises > 2 m to filter GPS noise
+        if (altitude !== null) {
+          if (lastAltitudeRef.current !== null) {
+            const rise = altitude - lastAltitudeRef.current
+            if (rise > 2) {
+              elevationGainMRef.current += rise
+              setElevationGainM(Math.round(elevationGainMRef.current))
+            }
+          }
+          lastAltitudeRef.current = altitude
+        }
+
         setActivePoints((prev) => {
           const last = lastPointRef.current
           if (last) {
@@ -207,18 +233,20 @@ export default function RunsPage() {
     setSaving(true)
     const durationS  = elapsedRef.current
     const distM      = distanceMRef.current
+    const elevGain   = elevationGainMRef.current
     const avgPace    = distM > 0 ? Math.round((durationS / distM) * 1000) : null
     const pointsSnap = [...activePoints]
 
     const { data: runRow } = await supabase
       .from('runs')
       .insert({
-        client_id:         clientId,
-        started_at:        startTimeRef.current.toISOString(),
-        finished_at:       new Date().toISOString(),
-        distance_m:        Math.round(distM * 100) / 100,
-        duration_s:        durationS,
-        avg_pace_s_per_km: avgPace,
+        client_id:          clientId,
+        started_at:         startTimeRef.current.toISOString(),
+        finished_at:        new Date().toISOString(),
+        distance_m:         Math.round(distM * 100) / 100,
+        duration_s:         durationS,
+        avg_pace_s_per_km:  avgPace,
+        elevation_gain_m:   Math.round(elevGain * 100) / 100,
       })
       .select('id')
       .single()
@@ -229,6 +257,7 @@ export default function RunsPage() {
           run_id:      runRow.id,
           lat:         p.lat,
           lng:         p.lng,
+          altitude_m:  p.altitude_m,
           recorded_at: p.recorded_at,
         }))
       )
@@ -239,6 +268,7 @@ export default function RunsPage() {
     setActivePoints([])
     setElapsed(0)
     setDistanceM(0)
+    setElevationGainM(0)
     startTimeRef.current = null
     await loadRuns()
   }
@@ -298,7 +328,7 @@ export default function RunsPage() {
             <div className="text-4xl font-mono font-bold text-white text-center tabular-nums mb-3">
               {fmtDuration(elapsed)}
             </div>
-            <div className="flex justify-center gap-12">
+            <div className="flex justify-center gap-8">
               <div className="text-center">
                 <div className="text-xl font-bold text-brand">{fmtDistance(distanceM)}</div>
                 <div className="text-[11px] text-gray-400 uppercase tracking-wider mt-0.5">Distance</div>
@@ -306,6 +336,10 @@ export default function RunsPage() {
               <div className="text-center">
                 <div className="text-xl font-bold text-brand">{fmtPace(paceSecPerKm)}</div>
                 <div className="text-[11px] text-gray-400 uppercase tracking-wider mt-0.5">Pace /km</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xl font-bold text-brand">{fmtElevation(elevationGainM)}</div>
+                <div className="text-[11px] text-gray-400 uppercase tracking-wider mt-0.5">Elevation</div>
               </div>
             </div>
             {gpsError && <p className="text-xs text-red-400 text-center mt-2">{gpsError}</p>}
@@ -355,7 +389,7 @@ export default function RunsPage() {
           <div className="text-7xl font-mono font-bold text-white tabular-nums mb-10">
             {fmtDuration(elapsed)}
           </div>
-          <div className="flex gap-16 mb-10">
+          <div className="flex gap-10 mb-10">
             <div className="text-center">
               <div className="text-3xl font-bold text-brand">{fmtDistance(distanceM)}</div>
               <div className="text-xs text-gray-400 uppercase tracking-wider mt-1">Distance</div>
@@ -363,6 +397,10 @@ export default function RunsPage() {
             <div className="text-center">
               <div className="text-3xl font-bold text-brand">{fmtPace(paceSecPerKm)}</div>
               <div className="text-xs text-gray-400 uppercase tracking-wider mt-1">Pace /km</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-brand">{fmtElevation(elevationGainM)}</div>
+              <div className="text-xs text-gray-400 uppercase tracking-wider mt-1">Elevation</div>
             </div>
           </div>
 
@@ -454,6 +492,12 @@ export default function RunsPage() {
                         <>
                           <span>·</span>
                           <span>{fmtPace(run.avg_pace_s_per_km)}/km</span>
+                        </>
+                      )}
+                      {run.elevation_gain_m != null && run.elevation_gain_m > 0 && (
+                        <>
+                          <span>·</span>
+                          <span>{fmtElevation(run.elevation_gain_m)}</span>
                         </>
                       )}
                     </div>
