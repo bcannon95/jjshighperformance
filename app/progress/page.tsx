@@ -6,6 +6,7 @@ import { useAuth } from '@/components/AuthProvider'
 
 type WeightLog = { logged_at: string; weight_kg: number }
 type BiometricLog = { logged_at: string; metric: string; value: number; unit: string }
+type RunSummary = { started_at: string; distance_m: number; elevation_gain_m: number | null }
 type MeasurementLog = {
   logged_at: string
   neck_cm: number | null
@@ -71,15 +72,16 @@ function EmptyState({ message }: { message: string }) {
 export default function ProgressPage() {
   const { clientId } = useAuth()
   const [loading, setLoading] = useState(true)
-  const [weightLogs, setWeightLogs]       = useState<WeightLog[]>([])
-  const [biometrics, setBiometrics]       = useState<BiometricLog[]>([])
+  const [weightLogs, setWeightLogs]           = useState<WeightLog[]>([])
+  const [biometrics, setBiometrics]           = useState<BiometricLog[]>([])
   const [measurementLogs, setMeasurementLogs] = useState<MeasurementLog[]>([])
+  const [runs, setRuns]                       = useState<RunSummary[]>([])
 
   useEffect(() => {
     if (!clientId) return
     async function load() {
       setLoading(true)
-      const [wRes, bRes, mRes] = await Promise.all([
+      const [wRes, bRes, mRes, rRes] = await Promise.all([
         supabase
           .from('body_weight_logs')
           .select('logged_at, weight_kg')
@@ -96,10 +98,17 @@ export default function ProgressPage() {
           .select('logged_at, neck_cm, chest_cm, waist_cm, hips_cm, left_arm_cm, right_arm_cm, left_thigh_cm, right_thigh_cm, left_calf_cm, right_calf_cm')
           .eq('client_id', clientId)
           .order('logged_at', { ascending: true }),
+        supabase
+          .from('runs')
+          .select('started_at, distance_m, elevation_gain_m')
+          .eq('client_id', clientId)
+          .not('finished_at', 'is', null)
+          .order('started_at', { ascending: true }),
       ])
       if (wRes.data) setWeightLogs(wRes.data)
       if (bRes.data) setBiometrics(bRes.data)
       if (mRes.data) setMeasurementLogs(mRes.data)
+      if (rRes.data) setRuns(rRes.data)
       setLoading(false)
     }
     load()
@@ -139,6 +148,22 @@ export default function ProgressPage() {
   // ── Derived: measurements ──────────────────────────────────────────────────
   const firstMeasurement  = measurementLogs[0] ?? null
   const latestMeasurement = measurementLogs[measurementLogs.length - 1] ?? null
+
+  // ── Derived: runs ─────────────────────────────────────────────────────────
+  const totalRuns      = runs.length
+  const totalDistM     = runs.reduce((s, r) => s + Number(r.distance_m), 0)
+  const totalElevM     = runs.reduce((s, r) => s + Number(r.elevation_gain_m ?? 0), 0)
+  const runChartData   = runs.slice(-8)
+  const runChartMax    = runChartData.length ? Math.max(...runChartData.map((r) => Number(r.distance_m))) : 1
+
+  function fmtTotalDist(m: number) {
+    if (m < 1000) return `${Math.round(m)} m`
+    return `${(m / 1000).toFixed(1)} km`
+  }
+  function fmtRunDist(m: number) {
+    if (m < 1000) return `${Math.round(m)}m`
+    return `${(m / 1000).toFixed(2)}km`
+  }
 
   // ── Weight chart ───────────────────────────────────────────────────────────
   const chartData = weightLogs.slice(-8)
@@ -251,6 +276,57 @@ export default function ProgressPage() {
               )
             })}
           </div>
+        )}
+      </div>
+
+      {/* ── Running ──────────────────────────────────────────────────────── */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-jj-grey/30 dark:border-gray-700 mb-6">
+        <h2 className="font-heading text-2xl mb-5 text-gray-900 dark:text-white">Running</h2>
+
+        {totalRuns === 0 ? (
+          <EmptyState message="No runs recorded yet." />
+        ) : (
+          <>
+            {/* Summary cards */}
+            <div className="grid grid-cols-3 gap-3 mb-6">
+              <div className="bg-jj-neutral dark:bg-gray-900 rounded-lg p-4">
+                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Runs</div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">{totalRuns}</div>
+              </div>
+              <div className="bg-jj-neutral dark:bg-gray-900 rounded-lg p-4">
+                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Distance</div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">{fmtTotalDist(totalDistM)}</div>
+              </div>
+              <div className="bg-jj-neutral dark:bg-gray-900 rounded-lg p-4">
+                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Elevation</div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">+{Math.round(totalElevM)} m</div>
+              </div>
+            </div>
+
+            {/* Distance per run bar chart */}
+            <div className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+              Distance — last {runChartData.length} run{runChartData.length === 1 ? '' : 's'}
+            </div>
+            <div className="flex items-end gap-2 h-28">
+              {runChartData.map((r, i) => {
+                const pct  = Number(r.distance_m) / runChartMax
+                const barH = Math.max(12, Math.round(pct * 96))
+                const isLast = i === runChartData.length - 1
+                return (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
+                    <span className="text-[11px] font-semibold text-brand">{fmtRunDist(Number(r.distance_m))}</span>
+                    <div
+                      className={`w-full rounded-t ${isLast ? 'bg-brand' : 'bg-brand/30'}`}
+                      style={{ height: barH }}
+                    />
+                    <span className="text-[10px] text-gray-400 dark:text-gray-500 text-center leading-tight">
+                      {formatDate(r.started_at)}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </>
         )}
       </div>
 
