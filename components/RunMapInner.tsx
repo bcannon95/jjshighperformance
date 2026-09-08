@@ -1,7 +1,6 @@
 'use client'
 import { useEffect } from 'react'
 import { MapContainer, TileLayer, Polyline, CircleMarker, useMap } from 'react-leaflet'
-import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
 type Point = { lat: number; lng: number }
@@ -20,8 +19,12 @@ function AutoFit({ points }: { points: Point[] }) {
   const map = useMap()
   useEffect(() => {
     if (points.length < 2) return
-    const bounds = L.latLngBounds(points.map((p) => [p.lat, p.lng] as [number, number]))
-    map.fitBounds(bounds, { padding: [32, 32] })
+    const lats = points.map((p) => p.lat)
+    const lngs = points.map((p) => p.lng)
+    map.fitBounds(
+      [[Math.min(...lats), Math.min(...lngs)], [Math.max(...lats), Math.max(...lngs)]],
+      { padding: [32, 32] }
+    )
   }, [map, points])
   return null
 }
@@ -63,7 +66,10 @@ export default function RunMapInner({
         <CircleMarker
           center={first}
           radius={6}
-          pathOptions={{ color: '#22c55e', fillColor: '#22c55e', fillOpacity: 1, weight: 2 }}
+          color="#22c55e"
+          fillColor="#22c55e"
+          fillOpacity={1}
+          weight={2}
         />
       )}
 
@@ -72,7 +78,10 @@ export default function RunMapInner({
         <CircleMarker
           center={last}
           radius={8}
-          pathOptions={{ color: '#d4de26', fillColor: '#d4de26', fillOpacity: 1, weight: 2 }}
+          color="#d4de26"
+          fillColor="#d4de26"
+          fillOpacity={1}
+          weight={2}
         />
       )}
 
