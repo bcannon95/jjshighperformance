@@ -87,18 +87,21 @@ export default function RunMapInner({
         />
       )}
 
-      {/* GPS accuracy circle — radius in real-world metres */}
-      {last && accuracyM != null && accuracyM > 0 && (
-        <Circle
-          center={last}
-          radius={accuracyM}
-          color="#d4de26"
-          fillColor="#d4de26"
-          fillOpacity={0.12}
-          weight={1}
-          opacity={0.4}
-        />
-      )}
+      {/* GPS accuracy circle — radius in real-world metres, colour-coded by quality */}
+      {last && accuracyM != null && accuracyM > 0 && (() => {
+        const colour = accuracyM <= 10 ? '#22c55e' : accuracyM <= 30 ? '#facc15' : '#ef4444'
+        return (
+          <Circle
+            center={last}
+            radius={accuracyM}
+            color={colour}
+            fillColor={colour}
+            fillOpacity={0.15}
+            weight={1.5}
+            opacity={0.5}
+          />
+        )
+      })()}
 
       {fit && points.length > 1 && <AutoFit points={points} />}
       {!fit && center && <TrackCenter center={center} />}
