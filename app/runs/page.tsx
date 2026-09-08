@@ -66,7 +66,7 @@ function ElevationProfile({ points }: { points: { altitude_m: number | null }[] 
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
-type RunPoint = { lat: number; lng: number; altitude_m: number | null; recorded_at: string }
+type RunPoint = { lat: number; lng: number; altitude_m: number | null; accuracy_m: number | null; recorded_at: string }
 
 type Run = {
   id: number
@@ -116,6 +116,22 @@ function fmtElevation(m: number): string {
   return `+${Math.round(m)} m`
 }
 
+function GpsAccuracyPill({ accuracy }: { accuracy: number | null }) {
+  if (accuracy === null) return (
+    <span className="text-[11px] text-gray-500 tabular-nums">GPS acquiring…</span>
+  )
+  const good   = accuracy <= 10
+  const ok     = accuracy <= 30
+  const colour = good ? 'text-green-400' : ok ? 'text-yellow-400' : 'text-red-400'
+  const dot    = good ? 'bg-green-400' : ok ? 'bg-yellow-400' : 'bg-red-400'
+  return (
+    <span className={`flex items-center gap-1 text-[11px] tabular-nums ${colour}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${dot} animate-pulse`} />
+      GPS ±{accuracy} m
+    </span>
+  )
+}
+
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-AU', {
     day: 'numeric',
@@ -142,6 +158,7 @@ export default function RunsPage() {
   const [elapsed, setElapsed]               = useState(0)
   const [distanceM, setDistanceM]           = useState(0)
   const [elevationGainM, setElevationGainM] = useState(0)
+  const [gpsAccuracy, setGpsAccuracy]       = useState<number | null>(null)
   const [gpsError, setGpsError]             = useState<string | null>(null)
   const [saving, setSaving]                 = useState(false)
 
@@ -199,6 +216,7 @@ export default function RunsPage() {
       return
     }
     setGpsError(null)
+    setGpsAccuracy(null)
     setActivePoints([])
     setDistanceM(0)
     setElapsed(0)
@@ -229,11 +247,18 @@ export default function RunsPage() {
     // GPS watch
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
+        const accuracy = pos.coords.accuracy
         const altitude = pos.coords.altitude
+        setGpsAccuracy(Math.round(accuracy))
+
+        // Discard points with very poor accuracy (> 50 m radius)
+        if (accuracy > 50) return
+
         const point: RunPoint = {
           lat:         pos.coords.latitude,
           lng:         pos.coords.longitude,
           altitude_m:  altitude !== null ? Math.round(altitude * 10) / 10 : null,
+          accuracy_m:  Math.round(accuracy * 10) / 10,
           recorded_at: new Date().toISOString(),
         }
 
@@ -308,6 +333,7 @@ export default function RunsPage() {
           lat:         p.lat,
           lng:         p.lng,
           altitude_m:  p.altitude_m,
+          accuracy_m:  p.accuracy_m,
           recorded_at: p.recorded_at,
         }))
       )
@@ -392,7 +418,11 @@ export default function RunsPage() {
                 <div className="text-[11px] text-gray-400 uppercase tracking-wider mt-0.5">Elevation</div>
               </div>
             </div>
-            {gpsError && <p className="text-xs text-red-400 text-center mt-2">{gpsError}</p>}
+            <div className="flex justify-center mt-2">
+              {gpsError
+                ? <span className="text-[11px] text-red-400">{gpsError}</span>
+                : <GpsAccuracyPill accuracy={gpsAccuracy} />}
+            </div>
           </div>
         </div>
 
@@ -472,11 +502,13 @@ export default function RunsPage() {
           {/* Show map button */}
           <button
             onClick={() => setMapOpen(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gray-800 hover:bg-gray-700 rounded-full text-sm text-gray-300 transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 bg-gray-800 hover:bg-gray-700 rounded-full text-sm text-gray-300 transition-colors mb-4"
           >
             <Map size={16} className="text-brand" />
             Show Map
           </button>
+
+          <GpsAccuracyPill accuracy={gpsAccuracy} />
         </div>
 
         {/* Stop button */}
