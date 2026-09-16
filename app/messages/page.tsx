@@ -1,8 +1,61 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Send, Search } from 'lucide-react'
+import { Send, Search, Users } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/components/AuthProvider'
+
+// ── Push notification registration ────────────────────────────────────────────
+
+async function registerPush(clientId: number) {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
+  const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+  if (!vapidKey) return // not configured yet
+
+  try {
+    const reg = await navigator.serviceWorker.ready
+    let sub = await reg.pushManager.getSubscription()
+
+    if (!sub) {
+      // Request permission first
+      const permission = await Notification.requestPermission()
+      if (permission !== 'granted') return
+
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly:      true,
+        applicationServerKey: urlBase64ToUint8Array(vapidKey),
+      })
+    }
+
+    const key  = sub.getKey('p256dh')
+    const auth = sub.getKey('auth')
+    if (!key || !auth) return
+
+    const toBase64 = (buf: ArrayBuffer) =>
+      btoa(Array.from(new Uint8Array(buf)).map((b) => String.fromCharCode(b)).join(''))
+
+    // Upsert subscription — ignore conflicts (same endpoint already stored)
+    await supabase.from('push_subscriptions').upsert(
+      {
+        user_id:      clientId,
+        user_type:    'client',
+        endpoint:     sub.endpoint,
+        p256dh:       toBase64(key),
+        auth_key:     toBase64(auth),
+        push_enabled: true,
+      },
+      { onConflict: 'endpoint' }
+    )
+  } catch {
+    // Non-fatal — push just won't work on this device
+  }
+}
+
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+  const base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const raw     = atob(base64)
+  return Uint8Array.from({ length: raw.length }, (_, i) => raw.charCodeAt(i))
+}
 
 const PAGE_SIZE = 50
 
@@ -16,11 +69,13 @@ type Message = {
 
 type ConversationView = {
   id: number
+  type: string
   name: string
   initials: string
   lastPreview: string | null
   lastAt: string | null
   unread: boolean
+  participantCount: number
 }
 
 function getInitials(name: string): string {
@@ -64,7 +119,7 @@ export default function MessagesPage() {
     // Step 1: conversations visible to this client (RLS filters automatically)
     const { data: convs } = await supabase
       .from('conversations')
-      .select('id, type, last_message_at, last_message_preview')
+      .select('id, type, name, last_message_at, last_message_preview')
       .order('last_message_at', { ascending: false, nullsFirst: false })
 
     if (!convs?.length) {
@@ -119,25 +174,34 @@ export default function MessagesPage() {
         const trainers = participants.filter(
           (p) => p.conversation_id === c.id && p.participant_type === 'trainer'
         )
-        const name =
-          trainers.length > 0
-            ? (trainerMap[trainers[0].participant_id] ?? 'Trainer')
-            : c.type === 'group'
-            ? 'Group Chat'
-            : 'Support'
+        // Display name: explicit DB name > trainer name > participant-derived
+        let name: string
+        if (c.name) {
+          name = c.name
+        } else if (trainers.length > 0) {
+          name = trainerMap[trainers[0].participant_id] ?? 'Coach'
+        } else {
+          name = c.type === 'group' ? 'Group Chat' : 'Support'
+        }
 
         const unread = !!(
           c.last_message_at &&
           (!myRow.last_read_at || c.last_message_at > myRow.last_read_at)
         )
 
+        const clientCount = participants.filter(
+          (p) => p.conversation_id === c.id && p.participant_type === 'client'
+        ).length
+
         return {
-          id:          c.id,
+          id:               c.id,
+          type:             c.type,
           name,
-          initials:    getInitials(name),
-          lastPreview: c.last_message_preview,
-          lastAt:      c.last_message_at,
+          initials:         getInitials(name),
+          lastPreview:      c.last_message_preview,
+          lastAt:           c.last_message_at,
           unread,
+          participantCount: clientCount,
         }
       })
 
@@ -148,6 +212,11 @@ export default function MessagesPage() {
   }, [clientId])
 
   useEffect(() => { loadConversations() }, [loadConversations])
+
+  // Register push subscription once client ID is available
+  useEffect(() => {
+    if (clientId) registerPush(clientId)
+  }, [clientId])
 
   // ── Load messages + realtime for selected conversation ─────────────────────
   const loadMessages = useCallback(
@@ -293,8 +362,15 @@ export default function MessagesPage() {
                     : 'hover:bg-jj-neutral dark:hover:bg-gray-800'
                 }`}
               >
-                <div className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center text-brand font-bold text-[13px] shrink-0">
-                  {c.initials}
+                <div className="relative w-10 h-10 shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center text-brand font-bold text-[13px]">
+                    {c.initials}
+                  </div>
+                  {c.type === 'group' && (
+                    <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-brand flex items-center justify-center">
+                      <Users size={9} color="#111" />
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between mb-1 gap-1">
