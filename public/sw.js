@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jjs-hp-v1';
+const CACHE_NAME = 'jjs-hp-v3';
 
 self.addEventListener('install', event => {
   self.skipWaiting();
@@ -6,9 +6,18 @@ self.addEventListener('install', event => {
 
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    )
+    caches.keys().then(keys => {
+      const stale = keys.filter(k => k !== CACHE_NAME);
+      return Promise.all(stale.map(k => caches.delete(k))).then(() => {
+        // If we cleared old caches, this is an update (not a fresh install).
+        // Tell all open clients to reload so they get the new assets.
+        if (stale.length > 0) {
+          return self.clients
+            .matchAll({ type: 'window', includeUncontrolled: true })
+            .then(clients => clients.forEach(client => client.postMessage({ type: 'SW_UPDATED' })));
+        }
+      });
+    })
   );
   self.clients.claim();
 });

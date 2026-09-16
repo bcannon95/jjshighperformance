@@ -40,11 +40,17 @@ export default function RootLayout({
           .font-bebas-fallback { --font-bebas: 'Bebas Neue', 'Arial Narrow', 'Oswald', system-ui, sans-serif; }
           .font-rubik-fallback { --font-rubik: 'Rubik', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
         ` }} />
-        {/* Register service worker for PWA */}
+        {/* Register service worker for PWA + auto-reload on update */}
         <script dangerouslySetInnerHTML={{ __html: `
           if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
               navigator.serviceWorker.register('/sw.js');
+              // When a new SW activates and clears old caches, reload to pick up fresh assets
+              navigator.serviceWorker.addEventListener('message', function(e) {
+                if (e.data && e.data.type === 'SW_UPDATED') {
+                  window.location.reload();
+                }
+              });
             });
           }
         ` }} />
