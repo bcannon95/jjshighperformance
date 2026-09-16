@@ -4,3 +4,9 @@ node_modules
 .next
 tsconfig.tsbuildinfo
 package-lock.json
+
+# Generated output
+out/
+
+# Supabase CLI temp files
+supabase/.temp/
