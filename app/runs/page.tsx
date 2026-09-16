@@ -167,6 +167,11 @@ export default function RunsPage() {
   const [selectedRunPoints, setSelectedRunPoints] = useState<RunPoint[]>([])
   const [loadingPoints, setLoadingPoints]       = useState(false)
 
+  // Recovery state (run interrupted by backgrounding / tab reload)
+  const [recoveredRun, setRecoveredRun] = useState<{ startedAt: string; points: RunPoint[] } | null>(null)
+  const [bgWarning, setBgWarning]       = useState(false)
+  const [saveError, setSaveError]       = useState<string | null>(null)
+
   // Refs to avoid stale closures in callbacks
   const startTimeRef      = useRef<Date | null>(null)
   const watchIdRef        = useRef<number | null>(null)
@@ -176,10 +181,13 @@ export default function RunsPage() {
   const elapsedRef        = useRef(0)
   const elevationGainMRef = useRef(0)
   const lastAltitudeRef   = useRef<number | null>(null)
+  const gpsStartTimeRef   = useRef<Date | null>(null)   // when first valid GPS point arrived
+  const modeRef           = useRef<'idle' | 'running'>('idle')
 
   // Sync refs
   useEffect(() => { distanceMRef.current = distanceM }, [distanceM])
   useEffect(() => { elapsedRef.current = elapsed }, [elapsed])
+  useEffect(() => { modeRef.current = mode }, [mode])
 
   // ── Load run history ──────────────────────────────────────────────────────
 
@@ -199,6 +207,18 @@ export default function RunsPage() {
 
   useEffect(() => { loadRuns() }, [loadRuns])
 
+  // ── Recover interrupted run from localStorage ─────────────────────────────
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('jjs_active_run')
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (parsed?.points?.length > 0) setRecoveredRun(parsed)
+      }
+    } catch {}
+  }, [])
+
   // ── Cleanup on unmount ────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -208,6 +228,82 @@ export default function RunsPage() {
     }
   }, [])
 
+  // ── GPS position handler (stable ref — used in startRun + visibility restart)
+
+  const handleGpsPosition = useCallback((pos: GeolocationPosition) => {
+    const accuracy = pos.coords.accuracy
+    const altitude = pos.coords.altitude
+    setGpsAccuracy(Math.round(accuracy))
+
+    if (accuracy > 50) return
+
+    // Record when first valid point arrives — used for accurate pace calc
+    if (!gpsStartTimeRef.current) gpsStartTimeRef.current = new Date()
+
+    const point: RunPoint = {
+      lat:         pos.coords.latitude,
+      lng:         pos.coords.longitude,
+      altitude_m:  altitude !== null ? Math.round(altitude * 10) / 10 : null,
+      accuracy_m:  Math.round(accuracy * 10) / 10,
+      recorded_at: new Date().toISOString(),
+    }
+
+    // Elevation gain: only count rises > 2 m to filter GPS noise
+    if (altitude !== null) {
+      if (lastAltitudeRef.current !== null) {
+        const rise = altitude - lastAltitudeRef.current
+        if (rise > 2) {
+          elevationGainMRef.current += rise
+          setElevationGainM(Math.round(elevationGainMRef.current))
+        }
+      }
+      lastAltitudeRef.current = altitude
+    }
+
+    setActivePoints((prev) => {
+      const last = lastPointRef.current
+      if (last) {
+        const d = haversine(last, point)
+        if (d < 5) return prev // ignore noise under 5 m
+        distanceMRef.current += d
+        setDistanceM(distanceMRef.current)
+      }
+      lastPointRef.current = point
+
+      // Persist to localStorage so data survives a background kill.
+      // We reserialise the full array here; for runs up to ~1 hr this stays well under 5 MB.
+      try {
+        const key = 'jjs_active_run'
+        const existing = localStorage.getItem(key)
+        const stored = existing ? JSON.parse(existing) : { startedAt: startTimeRef.current?.toISOString(), points: [] }
+        stored.points.push(point)
+        localStorage.setItem(key, JSON.stringify(stored))
+      } catch {}
+
+      return [...prev, point]
+    })
+  }, []) // stable: only touches refs and stable setters
+
+  // ── Re-acquire GPS when returning from background ─────────────────────────
+
+  useEffect(() => {
+    function onVisibility() {
+      if (document.visibilityState !== 'visible') return
+      if (modeRef.current !== 'running') return
+      setBgWarning(true)
+      // Restart GPS watch if the OS killed it while backgrounded
+      if (watchIdRef.current === null) {
+        watchIdRef.current = navigator.geolocation.watchPosition(
+          handleGpsPosition,
+          (err) => setGpsError(`GPS: ${err.message}`),
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 },
+        )
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => document.removeEventListener('visibilitychange', onVisibility)
+  }, [handleGpsPosition])
+
   // ── Start run ─────────────────────────────────────────────────────────────
 
   function startRun() {
@@ -216,6 +312,8 @@ export default function RunsPage() {
       return
     }
     setGpsError(null)
+    setSaveError(null)
+    setBgWarning(false)
     setGpsAccuracy(null)
     setActivePoints([])
     setDistanceM(0)
@@ -226,9 +324,15 @@ export default function RunsPage() {
     elapsedRef.current        = 0
     elevationGainMRef.current = 0
     lastAltitudeRef.current   = null
+    gpsStartTimeRef.current   = null
+
+    try { localStorage.removeItem('jjs_active_run') } catch {}
 
     const start = new Date()
     startTimeRef.current = start
+    try {
+      localStorage.setItem('jjs_active_run', JSON.stringify({ startedAt: start.toISOString(), points: [] }))
+    } catch {}
     setMapOpen(false)
     setMode('running')
 
@@ -246,48 +350,9 @@ export default function RunsPage() {
 
     // GPS watch
     watchIdRef.current = navigator.geolocation.watchPosition(
-      (pos) => {
-        const accuracy = pos.coords.accuracy
-        const altitude = pos.coords.altitude
-        setGpsAccuracy(Math.round(accuracy))
-
-        // Discard points with very poor accuracy (> 50 m radius)
-        if (accuracy > 50) return
-
-        const point: RunPoint = {
-          lat:         pos.coords.latitude,
-          lng:         pos.coords.longitude,
-          altitude_m:  altitude !== null ? Math.round(altitude * 10) / 10 : null,
-          accuracy_m:  Math.round(accuracy * 10) / 10,
-          recorded_at: new Date().toISOString(),
-        }
-
-        // Elevation gain: only count rises > 2 m to filter GPS noise
-        if (altitude !== null) {
-          if (lastAltitudeRef.current !== null) {
-            const rise = altitude - lastAltitudeRef.current
-            if (rise > 2) {
-              elevationGainMRef.current += rise
-              setElevationGainM(Math.round(elevationGainMRef.current))
-            }
-          }
-          lastAltitudeRef.current = altitude
-        }
-
-        setActivePoints((prev) => {
-          const last = lastPointRef.current
-          if (last) {
-            const d = haversine(last, point)
-            if (d < 5) return prev // ignore noise under 5 m
-            distanceMRef.current += d
-            setDistanceM(distanceMRef.current)
-          }
-          lastPointRef.current = point
-          return [...prev, point]
-        })
-      },
+      handleGpsPosition,
       (err) => setGpsError(`GPS: ${err.message}`),
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
     )
   }
 
@@ -306,47 +371,137 @@ export default function RunsPage() {
     }
 
     setSaving(true)
+    setSaveError(null)
     const durationS  = elapsedRef.current
     const distM      = distanceMRef.current
     const elevGain   = elevationGainMRef.current
     const avgPace    = distM > 0 ? Math.round((durationS / distM) * 1000) : null
     const pointsSnap = [...activePoints]
+    const startedAt  = startTimeRef.current.toISOString()
 
-    const { data: runRow } = await supabase
-      .from('runs')
-      .insert({
-        client_id:          clientId,
-        started_at:         startTimeRef.current.toISOString(),
-        finished_at:        new Date().toISOString(),
-        distance_m:         Math.round(distM * 100) / 100,
-        duration_s:         durationS,
-        avg_pace_s_per_km:  avgPace,
-        elevation_gain_m:   Math.round(elevGain * 100) / 100,
-      })
-      .select('id')
-      .single()
+    try {
+      const { data: runRow, error: runErr } = await supabase
+        .from('runs')
+        .insert({
+          client_id:          clientId,
+          started_at:         startedAt,
+          finished_at:        new Date().toISOString(),
+          distance_m:         Math.round(distM * 100) / 100,
+          duration_s:         durationS,
+          avg_pace_s_per_km:  avgPace,
+          elevation_gain_m:   Math.round(elevGain * 100) / 100,
+        })
+        .select('id')
+        .single()
 
-    if (runRow && pointsSnap.length > 0) {
-      await supabase.from('run_points').insert(
-        pointsSnap.map((p) => ({
-          run_id:      runRow.id,
-          lat:         p.lat,
-          lng:         p.lng,
-          altitude_m:  p.altitude_m,
-          accuracy_m:  p.accuracy_m,
-          recorded_at: p.recorded_at,
-        }))
-      )
+      if (runErr) throw runErr
+
+      if (runRow && pointsSnap.length > 0) {
+        const CHUNK = 200
+        for (let i = 0; i < pointsSnap.length; i += CHUNK) {
+          const { error: ptsErr } = await supabase.from('run_points').insert(
+            pointsSnap.slice(i, i + CHUNK).map((p) => ({
+              run_id:      runRow.id,
+              lat:         p.lat,
+              lng:         p.lng,
+              altitude_m:  p.altitude_m,
+              accuracy_m:  p.accuracy_m,
+              recorded_at: p.recorded_at,
+            }))
+          )
+          if (ptsErr) throw ptsErr
+        }
+      }
+
+      try { localStorage.removeItem('jjs_active_run') } catch {}
+
+      setMode('idle')
+      setActivePoints([])
+      setElapsed(0)
+      setDistanceM(0)
+      setElevationGainM(0)
+      setBgWarning(false)
+      startTimeRef.current    = null
+      gpsStartTimeRef.current = null
+      await loadRuns()
+    } catch (err) {
+      console.error('Failed to save run:', err)
+      setSaveError('Save failed — your run data is safe. Please try again.')
+    } finally {
+      setSaving(false)
     }
+  }
 
-    setSaving(false)
-    setMode('idle')
-    setActivePoints([])
-    setElapsed(0)
-    setDistanceM(0)
-    setElevationGainM(0)
-    startTimeRef.current = null
-    await loadRuns()
+  // ── Save a recovered (interrupted) run ───────────────────────────────────
+
+  async function saveRecoveredRun() {
+    if (!recoveredRun || !clientId) return
+    setSaving(true)
+    setSaveError(null)
+    try {
+      const { points, startedAt } = recoveredRun
+      let distM = 0
+      let elevGain = 0
+      let lastAlt: number | null = null
+      let lastPt: RunPoint | null = null
+      for (const p of points) {
+        if (lastPt) distM += haversine(lastPt, p)
+        if (p.altitude_m !== null && lastAlt !== null && p.altitude_m - lastAlt > 2)
+          elevGain += p.altitude_m - lastAlt
+        if (p.altitude_m !== null) lastAlt = p.altitude_m
+        lastPt = p
+      }
+      const finishedAt = points[points.length - 1].recorded_at
+      const durationS  = Math.round((new Date(finishedAt).getTime() - new Date(startedAt).getTime()) / 1000)
+      const avgPace    = distM > 0 ? Math.round((durationS / distM) * 1000) : null
+
+      const { data: runRow, error: runErr } = await supabase
+        .from('runs')
+        .insert({
+          client_id:         clientId,
+          started_at:        startedAt,
+          finished_at:       finishedAt,
+          distance_m:        Math.round(distM * 100) / 100,
+          duration_s:        durationS,
+          avg_pace_s_per_km: avgPace,
+          elevation_gain_m:  Math.round(elevGain * 100) / 100,
+        })
+        .select('id')
+        .single()
+
+      if (runErr) throw runErr
+
+      if (runRow && points.length > 0) {
+        const CHUNK = 200
+        for (let i = 0; i < points.length; i += CHUNK) {
+          const { error: ptsErr } = await supabase.from('run_points').insert(
+            points.slice(i, i + CHUNK).map((p) => ({
+              run_id:      runRow.id,
+              lat:         p.lat,
+              lng:         p.lng,
+              altitude_m:  p.altitude_m,
+              accuracy_m:  p.accuracy_m,
+              recorded_at: p.recorded_at,
+            }))
+          )
+          if (ptsErr) throw ptsErr
+        }
+      }
+
+      try { localStorage.removeItem('jjs_active_run') } catch {}
+      setRecoveredRun(null)
+      await loadRuns()
+    } catch (err) {
+      console.error('Failed to save recovered run:', err)
+      setSaveError('Could not save recovered run. Please try again.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function discardRecoveredRun() {
+    try { localStorage.removeItem('jjs_active_run') } catch {}
+    setRecoveredRun(null)
   }
 
   // ── View route for a past run ─────────────────────────────────────────────
@@ -361,7 +516,7 @@ export default function RunsPage() {
     setLoadingPoints(true)
     const { data } = await supabase
       .from('run_points')
-      .select('lat, lng, recorded_at')
+      .select('lat, lng, altitude_m, accuracy_m, recorded_at')
       .eq('run_id', runId)
       .order('recorded_at', { ascending: true })
     setSelectedRunPoints(data ?? [])
@@ -370,8 +525,13 @@ export default function RunsPage() {
 
   // ── Derived ───────────────────────────────────────────────────────────────
 
+  // Pace uses time from first GPS lock, not from Start press — avoids inflating
+  // pace during the GPS acquisition window (can be 30–120 s on mobile)
+  const gpsElapsedS = gpsStartTimeRef.current
+    ? Math.floor((Date.now() - gpsStartTimeRef.current.getTime()) / 1000)
+    : 0
   const paceSecPerKm =
-    elapsed > 0 && distanceM > 0 ? Math.round((elapsed / distanceM) * 1000) : null
+    gpsElapsedS > 0 && distanceM > 0 ? Math.round((gpsElapsedS / distanceM) * 1000) : null
 
   const mapCenter: [number, number] | null =
     activePoints.length > 0
@@ -383,6 +543,15 @@ export default function RunsPage() {
   if (mode === 'running' && mapOpen) {
     return (
       <div className="fixed inset-0 z-50 bg-gray-950">
+        {/* Background-kill warning */}
+        {bgWarning && (
+          <div className="absolute top-0 inset-x-0 z-[1001] bg-yellow-500/20 border-b border-yellow-500/40 px-4 py-1.5 text-center">
+            <span className="text-yellow-300 text-xs font-medium">
+              GPS was paused while the app was in the background — resumed now.
+            </span>
+          </div>
+        )}
+
         {/* Full-screen map */}
         <div className="absolute inset-0">
           {activePoints.length === 0 ? (
@@ -477,6 +646,22 @@ export default function RunsPage() {
   if (mode === 'running') {
     return (
       <div className="flex flex-col h-full bg-gray-950">
+        {/* Background-kill warning */}
+        {bgWarning && (
+          <div className="bg-yellow-500/20 border-b border-yellow-500/40 px-4 py-2 text-center">
+            <span className="text-yellow-300 text-xs font-medium">
+              GPS was paused while the app was in the background — resumed now.
+            </span>
+          </div>
+        )}
+
+        {/* Save error */}
+        {saveError && (
+          <div className="bg-red-500/20 border-b border-red-500/40 px-4 py-2 text-center">
+            <span className="text-red-300 text-xs">{saveError}</span>
+          </div>
+        )}
+
         {/* Stats */}
         <div className="flex-1 flex flex-col items-center justify-center px-6">
           <div className="text-7xl font-mono font-bold text-white tabular-nums mb-10">
@@ -534,6 +719,34 @@ export default function RunsPage() {
   return (
     <div className="p-6 bg-jj-neutral dark:bg-gray-950 min-h-full">
       <h1 className="font-heading text-4xl mb-6 text-gray-900 dark:text-white">Runs</h1>
+
+      {/* Recovered run banner */}
+      {recoveredRun && (
+        <div className="mb-6 bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4">
+          <p className="text-sm font-semibold text-yellow-400 mb-1">Interrupted run found</p>
+          <p className="text-xs text-gray-400 mb-3">
+            {recoveredRun.points.length} GPS points recorded before the session was interrupted.
+            Save them to your history or discard.
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={saveRecoveredRun}
+              disabled={saving}
+              className="flex-1 py-2 rounded-lg bg-brand text-gray-900 font-semibold text-sm disabled:opacity-50"
+            >
+              {saving ? 'Saving…' : 'Save run'}
+            </button>
+            <button
+              onClick={discardRecoveredRun}
+              disabled={saving}
+              className="flex-1 py-2 rounded-lg bg-gray-800 text-gray-300 text-sm disabled:opacity-50"
+            >
+              Discard
+            </button>
+          </div>
+          {saveError && <p className="text-xs text-red-400 mt-2">{saveError}</p>}
+        </div>
+      )}
 
       {gpsError && (
         <p className="mb-4 text-sm text-red-500 bg-red-50 dark:bg-red-950/40 px-4 py-2.5 rounded-lg">
