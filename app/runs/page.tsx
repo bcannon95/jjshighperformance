@@ -14,59 +14,9 @@ const RunMap = dynamic(() => import('@/components/RunMap'), {
   ),
 })
 
-// ── Elevation profile chart ──────────────────────────────────────────────────
-
-function ElevationProfile({ points }: { points: { altitude_m: number | null }[] }) {
-  const alts = points.map((p) => p.altitude_m).filter((a): a is number => a !== null)
-  if (alts.length < 2) return null
-
-  const min = Math.min(...alts)
-  const max = Math.max(...alts)
-  const range = max - min || 1
-  const W = 100
-  const H = 40
-  const pad = 2
-
-  const coords = alts.map((a, i) => {
-    const x = pad + (i / (alts.length - 1)) * (W - pad * 2)
-    const y = pad + (1 - (a - min) / range) * (H - pad * 2)
-    return `${x},${y}`
-  })
-
-  const line  = coords.join(' ')
-  const area  = `${pad},${H - pad} ${line} ${W - pad},${H - pad}`
-  const minAlt = Math.round(min)
-  const maxAlt = Math.round(max)
-
-  return (
-    <div className="relative">
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        className="w-full"
-        style={{ height: 56 }}
-        preserveAspectRatio="none"
-      >
-        <defs>
-          <linearGradient id="elev-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stopColor="#d4de26" stopOpacity="0.5" />
-            <stop offset="100%" stopColor="#d4de26" stopOpacity="0.03" />
-          </linearGradient>
-        </defs>
-        <polygon points={area} fill="url(#elev-fill)" />
-        <polyline points={line} fill="none" stroke="#d4de26" strokeWidth="1.5" strokeLinejoin="round" />
-      </svg>
-      {/* Min / max labels */}
-      <div className="absolute inset-x-0 top-0 flex justify-between px-0.5">
-        <span className="text-[10px] text-gray-400">{minAlt} m</span>
-        <span className="text-[10px] text-gray-400">{maxAlt} m</span>
-      </div>
-    </div>
-  )
-}
-
 // ── Types ───────────────────────────────────────────────────────────────────
 
-type RunPoint = { lat: number; lng: number; altitude_m: number | null; accuracy_m: number | null; recorded_at: string }
+type RunPoint = { lat: number; lng: number; accuracy_m: number | null; recorded_at: string }
 
 type Run = {
   id: number
@@ -75,7 +25,6 @@ type Run = {
   distance_m: number
   duration_s: number
   avg_pace_s_per_km: number | null
-  elevation_gain_m: number | null
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -112,10 +61,6 @@ function fmtDistance(m: number): string {
   return `${(m / 1000).toFixed(2)} km`
 }
 
-function fmtElevation(m: number): string {
-  return `+${Math.round(m)} m`
-}
-
 function GpsAccuracyPill({ accuracy }: { accuracy: number | null }) {
   if (accuracy === null) return (
     <span className="text-[11px] text-gray-500 tabular-nums">GPS acquiring…</span>
@@ -127,7 +72,7 @@ function GpsAccuracyPill({ accuracy }: { accuracy: number | null }) {
   return (
     <span className={`flex items-center gap-1 text-[11px] tabular-nums ${colour}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${dot} animate-pulse`} />
-      GPS ±{accuracy} m
+      GPS ±{Math.round(accuracy)} m
     </span>
   )
 }
@@ -150,44 +95,40 @@ export default function RunsPage() {
   const [mapOpen, setMapOpen] = useState(false)
 
   // Run history
-  const [runs, setRuns] = useState<Run[]>([])
+  const [runs, setRuns]           = useState<Run[]>([])
   const [loadingRuns, setLoadingRuns] = useState(true)
 
   // Active run
-  const [activePoints, setActivePoints]     = useState<RunPoint[]>([])
-  const [elapsed, setElapsed]               = useState(0)
-  const [distanceM, setDistanceM]           = useState(0)
-  const [elevationGainM, setElevationGainM] = useState(0)
-  const [gpsAccuracy, setGpsAccuracy]       = useState<number | null>(null)
-  const [gpsError, setGpsError]             = useState<string | null>(null)
-  const [saving, setSaving]                 = useState(false)
+  const [activePoints, setActivePoints] = useState<RunPoint[]>([])
+  const [elapsed, setElapsed]           = useState(0)
+  const [distanceM, setDistanceM]       = useState(0)
+  const [gpsAccuracy, setGpsAccuracy]   = useState<number | null>(null)
+  const [gpsError, setGpsError]         = useState<string | null>(null)
+  const [saving, setSaving]             = useState(false)
 
   // Selected history run (route view)
-  const [selectedRunId, setSelectedRunId]       = useState<number | null>(null)
-  const [selectedRunPoints, setSelectedRunPoints] = useState<RunPoint[]>([])
-  const [loadingPoints, setLoadingPoints]       = useState(false)
+  const [selectedRunId, setSelectedRunId]           = useState<number | null>(null)
+  const [selectedRunPoints, setSelectedRunPoints]   = useState<RunPoint[]>([])
+  const [loadingPoints, setLoadingPoints]           = useState(false)
 
-  // Recovery state (run interrupted by backgrounding / tab reload)
+  // Recovery / error state
   const [recoveredRun, setRecoveredRun] = useState<{ startedAt: string; points: RunPoint[] } | null>(null)
   const [bgWarning, setBgWarning]       = useState(false)
   const [saveError, setSaveError]       = useState<string | null>(null)
 
-  // Refs to avoid stale closures in callbacks
-  const startTimeRef      = useRef<Date | null>(null)
-  const watchIdRef        = useRef<number | null>(null)
-  const timerRef          = useRef<ReturnType<typeof setInterval> | null>(null)
-  const lastPointRef      = useRef<RunPoint | null>(null)
-  const distanceMRef      = useRef(0)
-  const elapsedRef        = useRef(0)
-  const elevationGainMRef = useRef(0)
-  const lastAltitudeRef   = useRef<number | null>(null)
-  const gpsStartTimeRef   = useRef<Date | null>(null)   // when first valid GPS point arrived
-  const modeRef           = useRef<'idle' | 'running'>('idle')
+  // Refs — avoid stale closures in GPS callbacks
+  const startTimeRef    = useRef<Date | null>(null)
+  const watchIdRef      = useRef<number | null>(null)
+  const timerRef        = useRef<ReturnType<typeof setInterval> | null>(null)
+  const lastPointRef    = useRef<RunPoint | null>(null)
+  const distanceMRef    = useRef(0)
+  const elapsedRef      = useRef(0)
+  const gpsStartTimeRef = useRef<Date | null>(null)  // first valid GPS lock — used for accurate pace
+  const modeRef         = useRef<'idle' | 'running'>('idle')
 
-  // Sync refs
   useEffect(() => { distanceMRef.current = distanceM }, [distanceM])
-  useEffect(() => { elapsedRef.current = elapsed }, [elapsed])
-  useEffect(() => { modeRef.current = mode }, [mode])
+  useEffect(() => { elapsedRef.current   = elapsed   }, [elapsed])
+  useEffect(() => { modeRef.current      = mode      }, [mode])
 
   // ── Load run history ──────────────────────────────────────────────────────
 
@@ -196,7 +137,7 @@ export default function RunsPage() {
     setLoadingRuns(true)
     const { data } = await supabase
       .from('runs')
-      .select('id, started_at, finished_at, distance_m, duration_s, avg_pace_s_per_km, elevation_gain_m')
+      .select('id, started_at, finished_at, distance_m, duration_s, avg_pace_s_per_km')
       .eq('client_id', clientId)
       .not('finished_at', 'is', null)
       .order('started_at', { ascending: false })
@@ -228,61 +169,51 @@ export default function RunsPage() {
     }
   }, [])
 
-  // ── GPS position handler (stable ref — used in startRun + visibility restart)
+  // ── GPS position handler ──────────────────────────────────────────────────
+  // Accuracy threshold raised to 100 m so points aren't silently dropped in
+  // moderate conditions. Noise filter reduced to 2 m so slow running pace
+  // (≈2.8 m/s) doesn't lose movement to the filter.
 
   const handleGpsPosition = useCallback((pos: GeolocationPosition) => {
     const accuracy = pos.coords.accuracy
-    const altitude = pos.coords.altitude
     setGpsAccuracy(Math.round(accuracy))
 
-    if (accuracy > 50) return
+    // Skip only truly unusable fixes (>100 m)
+    if (accuracy > 100) return
 
-    // Record when first valid point arrives — used for accurate pace calc
     if (!gpsStartTimeRef.current) gpsStartTimeRef.current = new Date()
 
     const point: RunPoint = {
       lat:         pos.coords.latitude,
       lng:         pos.coords.longitude,
-      altitude_m:  altitude !== null ? Math.round(altitude * 10) / 10 : null,
       accuracy_m:  Math.round(accuracy * 10) / 10,
       recorded_at: new Date().toISOString(),
-    }
-
-    // Elevation gain: only count rises > 2 m to filter GPS noise
-    if (altitude !== null) {
-      if (lastAltitudeRef.current !== null) {
-        const rise = altitude - lastAltitudeRef.current
-        if (rise > 2) {
-          elevationGainMRef.current += rise
-          setElevationGainM(Math.round(elevationGainMRef.current))
-        }
-      }
-      lastAltitudeRef.current = altitude
     }
 
     setActivePoints((prev) => {
       const last = lastPointRef.current
       if (last) {
         const d = haversine(last, point)
-        if (d < 5) return prev // ignore noise under 5 m
+        if (d < 2) return prev  // filter sub-2 m noise only
         distanceMRef.current += d
         setDistanceM(distanceMRef.current)
       }
       lastPointRef.current = point
 
-      // Persist to localStorage so data survives a background kill.
-      // We reserialise the full array here; for runs up to ~1 hr this stays well under 5 MB.
+      // Persist to localStorage so data survives backgrounding
       try {
-        const key = 'jjs_active_run'
+        const key     = 'jjs_active_run'
         const existing = localStorage.getItem(key)
-        const stored = existing ? JSON.parse(existing) : { startedAt: startTimeRef.current?.toISOString(), points: [] }
+        const stored  = existing
+          ? JSON.parse(existing)
+          : { startedAt: startTimeRef.current?.toISOString(), points: [] }
         stored.points.push(point)
         localStorage.setItem(key, JSON.stringify(stored))
       } catch {}
 
       return [...prev, point]
     })
-  }, []) // stable: only touches refs and stable setters
+  }, [])
 
   // ── Re-acquire GPS when returning from background ─────────────────────────
 
@@ -291,7 +222,6 @@ export default function RunsPage() {
       if (document.visibilityState !== 'visible') return
       if (modeRef.current !== 'running') return
       setBgWarning(true)
-      // Restart GPS watch if the OS killed it while backgrounded
       if (watchIdRef.current === null) {
         watchIdRef.current = navigator.geolocation.watchPosition(
           handleGpsPosition,
@@ -318,13 +248,10 @@ export default function RunsPage() {
     setActivePoints([])
     setDistanceM(0)
     setElapsed(0)
-    setElevationGainM(0)
-    lastPointRef.current      = null
-    distanceMRef.current      = 0
-    elapsedRef.current        = 0
-    elevationGainMRef.current = 0
-    lastAltitudeRef.current   = null
-    gpsStartTimeRef.current   = null
+    lastPointRef.current    = null
+    distanceMRef.current    = 0
+    elapsedRef.current      = 0
+    gpsStartTimeRef.current = null
 
     try { localStorage.removeItem('jjs_active_run') } catch {}
 
@@ -336,19 +263,16 @@ export default function RunsPage() {
     setMapOpen(false)
     setMode('running')
 
-    // Prevent screen sleep during a run (best-effort)
     if ('wakeLock' in navigator) {
       ;(navigator as any).wakeLock.request('screen').catch(() => {})
     }
 
-    // Live timer
     timerRef.current = setInterval(() => {
       const s = Math.floor((Date.now() - start.getTime()) / 1000)
       setElapsed(s)
       elapsedRef.current = s
     }, 1000)
 
-    // GPS watch
     watchIdRef.current = navigator.geolocation.watchPosition(
       handleGpsPosition,
       (err) => setGpsError(`GPS: ${err.message}`),
@@ -359,7 +283,13 @@ export default function RunsPage() {
   // ── Stop run ──────────────────────────────────────────────────────────────
 
   async function stopRun() {
-    if (!clientId || !startTimeRef.current) return
+    if (!startTimeRef.current) return
+
+    // Surface auth problem instead of silently doing nothing
+    if (!clientId) {
+      setSaveError('Not signed in as a client — please sign out and back in.')
+      return
+    }
 
     if (watchIdRef.current !== null) {
       navigator.geolocation.clearWatch(watchIdRef.current)
@@ -374,7 +304,6 @@ export default function RunsPage() {
     setSaveError(null)
     const durationS  = elapsedRef.current
     const distM      = distanceMRef.current
-    const elevGain   = elevationGainMRef.current
     const avgPace    = distM > 0 ? Math.round((durationS / distM) * 1000) : null
     const pointsSnap = [...activePoints]
     const startedAt  = startTimeRef.current.toISOString()
@@ -383,13 +312,12 @@ export default function RunsPage() {
       const { data: runRow, error: runErr } = await supabase
         .from('runs')
         .insert({
-          client_id:          clientId,
-          started_at:         startedAt,
-          finished_at:        new Date().toISOString(),
-          distance_m:         Math.round(distM * 100) / 100,
-          duration_s:         durationS,
-          avg_pace_s_per_km:  avgPace,
-          elevation_gain_m:   Math.round(elevGain * 100) / 100,
+          client_id:         clientId,
+          started_at:        startedAt,
+          finished_at:       new Date().toISOString(),
+          distance_m:        Math.round(distM * 100) / 100,
+          duration_s:        durationS,
+          avg_pace_s_per_km: avgPace,
         })
         .select('id')
         .single()
@@ -404,7 +332,6 @@ export default function RunsPage() {
               run_id:      runRow.id,
               lat:         p.lat,
               lng:         p.lng,
-              altitude_m:  p.altitude_m,
               accuracy_m:  p.accuracy_m,
               recorded_at: p.recorded_at,
             }))
@@ -419,14 +346,13 @@ export default function RunsPage() {
       setActivePoints([])
       setElapsed(0)
       setDistanceM(0)
-      setElevationGainM(0)
       setBgWarning(false)
       startTimeRef.current    = null
       gpsStartTimeRef.current = null
       await loadRuns()
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to save run:', err)
-      setSaveError('Save failed — your run data is safe. Please try again.')
+      setSaveError(`Save failed: ${err?.message ?? 'unknown error'}. Your run data is safe — try again.`)
     } finally {
       setSaving(false)
     }
@@ -435,25 +361,27 @@ export default function RunsPage() {
   // ── Save a recovered (interrupted) run ───────────────────────────────────
 
   async function saveRecoveredRun() {
-    if (!recoveredRun || !clientId) return
+    if (!clientId) {
+      setSaveError('Not signed in as a client — please sign out and back in.')
+      return
+    }
+    if (!recoveredRun) return
+
     setSaving(true)
     setSaveError(null)
     try {
       const { points, startedAt } = recoveredRun
-      let distM = 0
-      let elevGain = 0
-      let lastAlt: number | null = null
+      let distM  = 0
       let lastPt: RunPoint | null = null
       for (const p of points) {
         if (lastPt) distM += haversine(lastPt, p)
-        if (p.altitude_m !== null && lastAlt !== null && p.altitude_m - lastAlt > 2)
-          elevGain += p.altitude_m - lastAlt
-        if (p.altitude_m !== null) lastAlt = p.altitude_m
         lastPt = p
       }
       const finishedAt = points[points.length - 1].recorded_at
-      const durationS  = Math.round((new Date(finishedAt).getTime() - new Date(startedAt).getTime()) / 1000)
-      const avgPace    = distM > 0 ? Math.round((durationS / distM) * 1000) : null
+      const durationS  = Math.round(
+        (new Date(finishedAt).getTime() - new Date(startedAt).getTime()) / 1000
+      )
+      const avgPace = distM > 0 ? Math.round((durationS / distM) * 1000) : null
 
       const { data: runRow, error: runErr } = await supabase
         .from('runs')
@@ -464,7 +392,6 @@ export default function RunsPage() {
           distance_m:        Math.round(distM * 100) / 100,
           duration_s:        durationS,
           avg_pace_s_per_km: avgPace,
-          elevation_gain_m:  Math.round(elevGain * 100) / 100,
         })
         .select('id')
         .single()
@@ -479,7 +406,6 @@ export default function RunsPage() {
               run_id:      runRow.id,
               lat:         p.lat,
               lng:         p.lng,
-              altitude_m:  p.altitude_m,
               accuracy_m:  p.accuracy_m,
               recorded_at: p.recorded_at,
             }))
@@ -491,9 +417,9 @@ export default function RunsPage() {
       try { localStorage.removeItem('jjs_active_run') } catch {}
       setRecoveredRun(null)
       await loadRuns()
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to save recovered run:', err)
-      setSaveError('Could not save recovered run. Please try again.')
+      setSaveError(`Save failed: ${err?.message ?? 'unknown error'}`)
     } finally {
       setSaving(false)
     }
@@ -516,7 +442,7 @@ export default function RunsPage() {
     setLoadingPoints(true)
     const { data } = await supabase
       .from('run_points')
-      .select('lat, lng, altitude_m, accuracy_m, recorded_at')
+      .select('lat, lng, accuracy_m, recorded_at')
       .eq('run_id', runId)
       .order('recorded_at', { ascending: true })
     setSelectedRunPoints(data ?? [])
@@ -525,8 +451,8 @@ export default function RunsPage() {
 
   // ── Derived ───────────────────────────────────────────────────────────────
 
-  // Pace uses time from first GPS lock, not from Start press — avoids inflating
-  // pace during the GPS acquisition window (can be 30–120 s on mobile)
+  // Pace uses time from first GPS lock, not from Start press, to avoid
+  // inflating pace during the GPS acquisition window (can be 30–120 s).
   const gpsElapsedS = gpsStartTimeRef.current
     ? Math.floor((Date.now() - gpsStartTimeRef.current.getTime()) / 1000)
     : 0
@@ -538,12 +464,11 @@ export default function RunsPage() {
       ? [activePoints[activePoints.length - 1].lat, activePoints[activePoints.length - 1].lng]
       : null
 
-  // ── Running mode — full-screen map (Google/Apple Maps style) ───────────────
+  // ── Running mode — full-screen map ─────────────────────────────────────────
 
   if (mode === 'running' && mapOpen) {
     return (
       <div className="fixed inset-0 z-50 bg-gray-950">
-        {/* Background-kill warning */}
         {bgWarning && (
           <div className="absolute top-0 inset-x-0 z-[1001] bg-yellow-500/20 border-b border-yellow-500/40 px-4 py-1.5 text-center">
             <span className="text-yellow-300 text-xs font-medium">
@@ -552,7 +477,6 @@ export default function RunsPage() {
           </div>
         )}
 
-        {/* Full-screen map */}
         <div className="absolute inset-0">
           {activePoints.length === 0 ? (
             <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-gray-900 text-gray-400">
@@ -582,10 +506,6 @@ export default function RunsPage() {
                 <div className="text-xl font-bold text-brand">{fmtPace(paceSecPerKm)}</div>
                 <div className="text-[11px] text-gray-400 uppercase tracking-wider mt-0.5">Pace /km</div>
               </div>
-              <div className="text-center">
-                <div className="text-xl font-bold text-brand">{fmtElevation(elevationGainM)}</div>
-                <div className="text-[11px] text-gray-400 uppercase tracking-wider mt-0.5">Elevation</div>
-              </div>
             </div>
             <div className="flex justify-center mt-2">
               {gpsError
@@ -595,15 +515,14 @@ export default function RunsPage() {
           </div>
         </div>
 
-        {/* Elevation profile — floating strip above bottom controls */}
-        {activePoints.some((p) => p.altitude_m !== null) && (
+        {/* Save error */}
+        {saveError && (
           <div
             className="absolute left-4 right-4 z-[1000]"
-            style={{ bottom: 'calc(env(safe-area-inset-bottom) + 124px)' }}
+            style={{ bottom: 'calc(env(safe-area-inset-bottom) + 130px)' }}
           >
-            <div className="bg-gray-900/80 backdrop-blur-md rounded-xl px-3 pt-3 pb-2 border border-white/10">
-              <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Elevation</div>
-              <ElevationProfile points={activePoints} />
+            <div className="bg-red-500/20 border border-red-500/40 rounded-xl px-4 py-2 text-center">
+              <span className="text-red-300 text-xs">{saveError}</span>
             </div>
           </div>
         )}
@@ -613,7 +532,6 @@ export default function RunsPage() {
           className="absolute left-0 right-0 z-[1000] px-6 flex items-center justify-between"
           style={{ bottom: 'calc(env(safe-area-inset-bottom) + 24px)' }}
         >
-          {/* Collapse map */}
           <button
             onClick={() => setMapOpen(false)}
             className="w-12 h-12 rounded-full bg-gray-900/85 backdrop-blur-md border border-white/10 flex items-center justify-center text-white shadow-lg"
@@ -621,7 +539,6 @@ export default function RunsPage() {
             <ChevronDown size={20} />
           </button>
 
-          {/* Stop button */}
           <button
             onClick={stopRun}
             disabled={saving}
@@ -634,7 +551,6 @@ export default function RunsPage() {
             )}
           </button>
 
-          {/* Spacer for symmetry */}
           <div className="w-12" />
         </div>
       </div>
@@ -646,7 +562,6 @@ export default function RunsPage() {
   if (mode === 'running') {
     return (
       <div className="flex flex-col h-full bg-gray-950">
-        {/* Background-kill warning */}
         {bgWarning && (
           <div className="bg-yellow-500/20 border-b border-yellow-500/40 px-4 py-2 text-center">
             <span className="text-yellow-300 text-xs font-medium">
@@ -655,14 +570,12 @@ export default function RunsPage() {
           </div>
         )}
 
-        {/* Save error */}
         {saveError && (
           <div className="bg-red-500/20 border-b border-red-500/40 px-4 py-2 text-center">
             <span className="text-red-300 text-xs">{saveError}</span>
           </div>
         )}
 
-        {/* Stats */}
         <div className="flex-1 flex flex-col items-center justify-center px-6">
           <div className="text-7xl font-mono font-bold text-white tabular-nums mb-10">
             {fmtDuration(elapsed)}
@@ -676,15 +589,10 @@ export default function RunsPage() {
               <div className="text-3xl font-bold text-brand">{fmtPace(paceSecPerKm)}</div>
               <div className="text-xs text-gray-400 uppercase tracking-wider mt-1">Pace /km</div>
             </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-brand">{fmtElevation(elevationGainM)}</div>
-              <div className="text-xs text-gray-400 uppercase tracking-wider mt-1">Elevation</div>
-            </div>
           </div>
 
           {gpsError && <p className="text-xs text-red-400 text-center mb-4">{gpsError}</p>}
 
-          {/* Show map button */}
           <button
             onClick={() => setMapOpen(true)}
             className="flex items-center gap-2 px-5 py-2.5 bg-gray-800 hover:bg-gray-700 rounded-full text-sm text-gray-300 transition-colors mb-4"
@@ -696,8 +604,7 @@ export default function RunsPage() {
           <GpsAccuracyPill accuracy={gpsAccuracy} />
         </div>
 
-        {/* Stop button */}
-        <div className="flex justify-center pb-10" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 32px)' }}>
+        <div className="flex justify-center" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 32px)' }}>
           <button
             onClick={stopRun}
             disabled={saving}
@@ -802,12 +709,6 @@ export default function RunsPage() {
                           <span>{fmtPace(run.avg_pace_s_per_km)}/km</span>
                         </>
                       )}
-                      {run.elevation_gain_m != null && run.elevation_gain_m > 0 && (
-                        <>
-                          <span>·</span>
-                          <span>{fmtElevation(run.elevation_gain_m)}</span>
-                        </>
-                      )}
                     </div>
                   </div>
                   <ChevronRight
@@ -817,31 +718,23 @@ export default function RunsPage() {
                 </button>
 
                 {isExpanded && (
-                  <>
-                    <div className="h-64 border-t border-jj-grey/20 dark:border-gray-700">
-                      {loadingPoints ? (
-                        <div className="h-full flex items-center justify-center text-sm text-gray-400">
-                          Loading route…
-                        </div>
-                      ) : selectedRunPoints.length === 0 ? (
-                        <div className="h-full flex items-center justify-center text-sm text-gray-400">
-                          No GPS points recorded for this run.
-                        </div>
-                      ) : (
-                        <RunMap
-                          points={selectedRunPoints}
-                          center={[selectedRunPoints[0].lat, selectedRunPoints[0].lng]}
-                          fit
-                        />
-                      )}
-                    </div>
-                    {selectedRunPoints.some((p) => p.altitude_m !== null) && (
-                      <div className="border-t border-jj-grey/20 dark:border-gray-700 px-4 pt-3 pb-4 bg-white dark:bg-gray-800">
-                        <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Elevation Profile</div>
-                        <ElevationProfile points={selectedRunPoints} />
+                  <div className="h-64 border-t border-jj-grey/20 dark:border-gray-700">
+                    {loadingPoints ? (
+                      <div className="h-full flex items-center justify-center text-sm text-gray-400">
+                        Loading route…
                       </div>
+                    ) : selectedRunPoints.length === 0 ? (
+                      <div className="h-full flex items-center justify-center text-sm text-gray-400">
+                        No GPS points recorded for this run.
+                      </div>
+                    ) : (
+                      <RunMap
+                        points={selectedRunPoints}
+                        center={[selectedRunPoints[0].lat, selectedRunPoints[0].lng]}
+                        fit
+                      />
                     )}
-                  </>
+                  </div>
                 )}
               </div>
             )
