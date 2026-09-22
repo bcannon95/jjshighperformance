@@ -6,7 +6,7 @@ import { useAuth } from '@/components/AuthProvider'
 
 type WeightLog = { logged_at: string; weight_kg: number }
 type BiometricLog = { logged_at: string; metric: string; value: number; unit: string }
-type RunSummary = { started_at: string; distance_m: number; elevation_gain_m: number | null }
+type RunSummary = { started_at: string; distance_m: number }
 type MeasurementLog = {
   logged_at: string
   neck_cm: number | null
@@ -100,7 +100,7 @@ export default function ProgressPage() {
           .order('logged_at', { ascending: true }),
         supabase
           .from('runs')
-          .select('started_at, distance_m, elevation_gain_m')
+          .select('started_at, distance_m')
           .eq('client_id', clientId)
           .not('finished_at', 'is', null)
           .order('started_at', { ascending: true }),
@@ -152,7 +152,6 @@ export default function ProgressPage() {
   // ── Derived: runs ─────────────────────────────────────────────────────────
   const totalRuns      = runs.length
   const totalDistM     = runs.reduce((s, r) => s + Number(r.distance_m), 0)
-  const totalElevM     = runs.reduce((s, r) => s + Number(r.elevation_gain_m ?? 0), 0)
   const runChartData   = runs.slice(-8)
   const runChartMax    = runChartData.length ? Math.max(...runChartData.map((r) => Number(r.distance_m))) : 1
 
@@ -288,7 +287,7 @@ export default function ProgressPage() {
         ) : (
           <>
             {/* Summary cards */}
-            <div className="grid grid-cols-3 gap-3 mb-6">
+            <div className="grid grid-cols-2 gap-3 mb-6">
               <div className="bg-jj-neutral dark:bg-gray-900 rounded-lg p-4">
                 <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Runs</div>
                 <div className="text-2xl font-bold text-gray-900 dark:text-white">{totalRuns}</div>
@@ -296,10 +295,6 @@ export default function ProgressPage() {
               <div className="bg-jj-neutral dark:bg-gray-900 rounded-lg p-4">
                 <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Distance</div>
                 <div className="text-2xl font-bold text-gray-900 dark:text-white">{fmtTotalDist(totalDistM)}</div>
-              </div>
-              <div className="bg-jj-neutral dark:bg-gray-900 rounded-lg p-4">
-                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Elevation</div>
-                <div className="text-2xl font-bold text-gray-900 dark:text-white">+{Math.round(totalElevM)} m</div>
               </div>
             </div>
 
