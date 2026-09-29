@@ -85,14 +85,20 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         setSession(session);
-        if (session) {
-          const cid = await fetchClientId(session.user.id);
-          setClientId(cid);
-        } else {
-          setClientId(null);
-        }
+        if (!session) { setClientId(null); return; }
+        // Defer the Supabase query so the callback stays synchronous.
+        // Awaiting inside onAuthStateChange deadlocks: the callback waits on
+        // fetchClientId → getSession → auth startup → callback. setTimeout(0)
+        // breaks that cycle by letting auth finish before the query runs.
+        setTimeout(async () => {
+          try {
+            setClientId(await fetchClientId(session.user.id));
+          } catch (e) {
+            console.error('Failed to fetch client ID:', e);
+          }
+        }, 0);
       }
     );
 
