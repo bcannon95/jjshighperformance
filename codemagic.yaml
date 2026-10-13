@@ -17,6 +17,7 @@ workflows:
         XCODE_WORKSPACE: ios/App/App.xcworkspace
         XCODE_SCHEME: App
         BUNDLE_ID: com.jjshighperformance.app
+        APP_STORE_APPLE_ID: 6822292723
       node: 20
       xcode: latest
       cocoapods: default
@@ -48,7 +49,7 @@ workflows:
       - name: Set build number to Codemagic build number
         script: |
           cd ios/App
-          agvtool new-version -all $(($(app-store-connect get-latest-testflight-build-number "$BUNDLE_ID") + 1))
+          agvtool new-version -all $(($(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID") + 1))
 
       - name: Build and sign iOS app
         script: |
