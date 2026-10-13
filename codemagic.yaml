@@ -33,7 +33,9 @@ workflows:
         script: npm ci
 
       - name: Build Next.js static export
-        script: CAPACITOR_BUILD=true npm run build
+        script: |
+          rm -rf app/api app/admin
+          CAPACITOR_BUILD=true npm run build
 
       - name: Sync Capacitor
         script: npx cap sync ios
