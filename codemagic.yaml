@@ -61,4 +61,3 @@ workflows:
         submit_to_testflight: true
         beta_groups:
           - Internal Testers
-        notify_testers: false
