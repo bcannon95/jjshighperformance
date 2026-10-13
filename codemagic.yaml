@@ -8,6 +8,8 @@ workflows:
       app_store_connect: Codemagic
 
     environment:
+      groups:
+        - supabase
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.jjshighperformance.app
@@ -15,9 +17,6 @@ workflows:
         XCODE_WORKSPACE: ios/App/App.xcworkspace
         XCODE_SCHEME: App
         BUNDLE_ID: com.jjshighperformance.app
-        NEXT_PUBLIC_SUPABASE_URL: $NEXT_PUBLIC_SUPABASE_URL
-        NEXT_PUBLIC_SUPABASE_ANON_KEY: $NEXT_PUBLIC_SUPABASE_ANON_KEY
-        SUPABASE_SERVICE_ROLE_KEY: $SUPABASE_SERVICE_ROLE_KEY
       node: 20
       xcode: latest
       cocoapods: default
