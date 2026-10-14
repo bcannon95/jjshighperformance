@@ -633,9 +633,10 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
+      </div>
 
-        {/* ACHIEVEMENTS */}
-        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-jj-grey/30 dark:border-gray-700 p-5 mb-6">
+      {/* ACHIEVEMENTS */}
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-jj-grey/30 dark:border-gray-700 p-5 mb-6">
         <div className="flex items-center justify-between mb-4">
         <h2 className="font-heading text-lg tracking-widest text-gray-700 dark:text-gray-200 uppercase">
         Achievements
@@ -654,9 +655,9 @@ export default function Dashboard() {
         </div>
         ))}
         </div>
-        </div>
-        
-        {/* CONFIGURE WIDGETS MODAL */}
+      </div>
+
+      {/* CONFIGURE WIDGETS MODAL */}
         {showWidgetConfig && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             {/* backdrop */}
@@ -759,7 +760,6 @@ export default function Dashboard() {
             </div>
           </div>
         )}
-      </div>
 
       {/* ADD ACTIVITY MODAL */}
       {showModal && (

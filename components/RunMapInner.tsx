@@ -50,8 +50,8 @@ export default function RunMapInner({
       center={defaultCenter}
       zoom={16}
       className="w-full h-full"
-      zoomControl
-      scrollWheelZoom
+      zoomControl={false}
+      scrollWheelZoom={false}
     >
       <TileLayer
         url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"

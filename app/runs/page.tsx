@@ -178,8 +178,8 @@ export default function RunsPage() {
     const accuracy = pos.coords.accuracy
     setGpsAccuracy(Math.round(accuracy))
 
-    // Skip only truly unusable fixes (>100 m)
-    if (accuracy > 100) return
+    // Skip poor fixes — 50 m is the threshold for usable run tracking
+    if (accuracy > 50) return
 
     if (!gpsStartTimeRef.current) gpsStartTimeRef.current = new Date()
 
@@ -194,7 +194,13 @@ export default function RunsPage() {
       const last = lastPointRef.current
       if (last) {
         const d = haversine(last, point)
-        if (d < 2) return prev  // filter sub-2 m noise only
+        if (d < 2) return prev  // filter sub-2 m noise
+
+        // Sanity-check implied speed — GPS glitches can produce impossible jumps.
+        // 12 m/s ≈ 43 km/h, well above any realistic running/walking speed.
+        const dtS = (new Date(point.recorded_at).getTime() - new Date(last.recorded_at).getTime()) / 1000
+        if (dtS > 0 && d / dtS > 12) return prev  // discard GPS spike
+
         distanceMRef.current += d
         setDistanceM(distanceMRef.current)
       }
@@ -226,7 +232,7 @@ export default function RunsPage() {
         watchIdRef.current = navigator.geolocation.watchPosition(
           handleGpsPosition,
           (err) => setGpsError(`GPS: ${err.message}`),
-          { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 },
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
         )
       }
     }
