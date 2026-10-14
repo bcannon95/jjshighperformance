@@ -1,4 +1,5 @@
 import UIKit
+import WebKit
 import Capacitor
 
 @UIApplicationMain
@@ -9,6 +10,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
         return true
+    }
+
+    func applicationDidBecomeActive(_ application: UIApplication) {
+        // Disable pinch-to-zoom on the Capacitor WebView
+        DispatchQueue.main.async {
+            if let rootVC = self.window?.rootViewController,
+               let webView = rootVC.view.subviews.first(where: { $0 is WKWebView }) as? WKWebView {
+                webView.scrollView.delegate = nil
+                webView.scrollView.minimumZoomScale = 1.0
+                webView.scrollView.maximumZoomScale = 1.0
+                webView.scrollView.bouncesZoom = false
+            }
+        }
     }
 
     func applicationWillResignActive(_ application: UIApplication) {
@@ -23,10 +37,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func applicationWillEnterForeground(_ application: UIApplication) {
         // Called as part of the transition from the background to the active state; here you can undo many of the changes made on entering the background.
-    }
-
-    func applicationDidBecomeActive(_ application: UIApplication) {
-        // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
     }
 
     func applicationWillTerminate(_ application: UIApplication) {
