@@ -3,12 +3,12 @@
 @tailwind utilities;
 
 /* ── iOS input zoom prevention ────────────────────────────────────────────────
-   iOS auto-zooms any focused input with font-size < 16px. This rule sits
-   outside @layer so it wins over Tailwind's text-sm/text-xs utilities without
-   needing to touch every input individually.
+   iOS WKWebView auto-zooms any focused input with font-size < 16px.
+   !important beats Tailwind utility classes (e.g. text-sm = 14px) that would
+   otherwise win on specificity and re-trigger the zoom.
 ────────────────────────────────────────────────────────────────────────────── */
 input, textarea, select {
-  font-size: max(1rem, 16px);
+  font-size: 16px !important;
 }
 
 @layer base {

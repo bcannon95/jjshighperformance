@@ -8,21 +8,40 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // iOS resets WKWebView zoom when the keyboard appears (to bring the focused
+        // input into view). Observing both notifications keeps zoom locked at 1.0
+        // regardless of what the system tries to do.
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(resetWebViewZoom),
+            name: UIResponder.keyboardDidShowNotification,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(resetWebViewZoom),
+            name: UIResponder.keyboardWillShowNotification,
+            object: nil
+        )
         return true
     }
 
-    func applicationDidBecomeActive(_ application: UIApplication) {
-        // Disable pinch-to-zoom via the Capacitor bridge's webView reference,
-        // which is more reliable than hunting through the view hierarchy.
+    @objc private func resetWebViewZoom() {
         DispatchQueue.main.async {
             if let capVC = self.window?.rootViewController as? CAPBridgeViewController,
                let webView = capVC.webView {
                 webView.scrollView.minimumZoomScale = 1.0
                 webView.scrollView.maximumZoomScale = 1.0
                 webView.scrollView.bouncesZoom = false
+                if webView.scrollView.zoomScale != 1.0 {
+                    webView.scrollView.setZoomScale(1.0, animated: false)
+                }
             }
         }
+    }
+
+    func applicationDidBecomeActive(_ application: UIApplication) {
+        resetWebViewZoom()
     }
 
     func applicationWillResignActive(_ application: UIApplication) {
