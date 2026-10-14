@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Send, Search, Users } from 'lucide-react'
+import { Send, Search, Users, ArrowLeft } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/components/AuthProvider'
 
@@ -329,8 +329,8 @@ export default function MessagesPage() {
   return (
     <div className="flex h-full bg-jj-neutral dark:bg-gray-950">
 
-      {/* ── Thread list ───────────────────────────────────────────────────── */}
-      <div className="w-72 bg-white dark:bg-gray-900 border-r border-jj-grey/40 dark:border-gray-700 flex flex-col shrink-0">
+      {/* ── Thread list — full width on mobile, fixed sidebar on desktop ── */}
+      <div className={`${selectedId ? 'hidden md:flex' : 'flex'} w-full md:w-72 bg-white dark:bg-gray-900 border-r border-jj-grey/40 dark:border-gray-700 flex-col shrink-0`}>
         <div className="p-4 border-b border-jj-grey/40 dark:border-gray-700">
           <h2 className="font-heading text-2xl mb-3 text-gray-900 dark:text-white">Messages</h2>
           <div className="flex items-center gap-2 bg-jj-neutral dark:bg-gray-800 rounded-lg px-3 py-2">
@@ -396,17 +396,23 @@ export default function MessagesPage() {
         </div>
       </div>
 
-      {/* ── Chat area ─────────────────────────────────────────────────────── */}
+      {/* ── Chat area — hidden on mobile when no conversation selected ──── */}
       {!selected ? (
-        <div className="flex-1 flex items-center justify-center text-sm text-gray-400 dark:text-gray-600">
+        <div className="hidden md:flex flex-1 items-center justify-center text-sm text-gray-400 dark:text-gray-600">
           Select a conversation to start messaging.
         </div>
       ) : (
         <div className="flex-1 flex flex-col overflow-hidden">
 
           {/* Header */}
-          <div className="px-5 py-4 border-b border-jj-grey/40 dark:border-gray-700 bg-white dark:bg-gray-900 flex items-center gap-3 shrink-0">
-            <div className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center text-brand font-bold text-sm">
+          <div className="px-4 py-4 border-b border-jj-grey/40 dark:border-gray-700 bg-white dark:bg-gray-900 flex items-center gap-3 shrink-0">
+            <button
+              onClick={() => setSelectedId(null)}
+              className="md:hidden p-1 -ml-1 text-gray-500 dark:text-gray-400"
+            >
+              <ArrowLeft size={20} />
+            </button>
+            <div className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center text-brand font-bold text-sm shrink-0">
               {selected.initials}
             </div>
             <span className="font-semibold text-sm text-gray-900 dark:text-white">{selected.name}</span>

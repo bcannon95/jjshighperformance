@@ -34,13 +34,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-dvh overflow-hidden">
       {/* Sidebar — desktop only */}
       <Sidebar />
       <div className="flex flex-col flex-1 overflow-hidden">
         <TopBar />
-        {/* pb-16 clears the fixed bottom nav on mobile */}
-        <main className="flex-1 overflow-y-auto pb-16 md:pb-0">{children}</main>
+        {/* pb accounts for fixed bottom nav + iOS home indicator */}
+        <main
+          className="flex-1 overflow-y-auto pb-16 md:pb-0"
+          style={{ paddingBottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}
+        >
+          {children}
+        </main>
       </div>
       {/* Bottom nav — mobile only */}
       <BottomNav />

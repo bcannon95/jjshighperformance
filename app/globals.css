@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Hide scrollbars globally ─────────────────────────────────────────────────
+   Scrollbars have no place in a native-feeling mobile app.
+────────────────────────────────────────────────────────────────────────────── */
+* {
+  scrollbar-width: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+}
+
 /* ── iOS input zoom prevention ────────────────────────────────────────────────
    iOS WKWebView auto-zooms any focused input with font-size < 16px.
    !important beats Tailwind utility classes (e.g. text-sm = 14px) that would

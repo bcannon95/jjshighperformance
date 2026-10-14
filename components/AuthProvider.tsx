@@ -55,18 +55,6 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
       Promise.race([supabase.auth.getSession(), timeout])
         .then(async ({ data: { session } }: Awaited<ReturnType<typeof supabase.auth.getSession>>) => {
-          // If the user didn't choose "stay signed in", only allow the session
-          // within the same browser session (sessionStorage survives navigation but
-          // not a fresh browser open).
-          if (
-            session &&
-            localStorage.getItem('jjs_remember_me') !== 'true' &&
-            sessionStorage.getItem('jjs_session_only') !== 'true'
-          ) {
-            await supabase.auth.signOut();
-            setLoading(false);
-            return;
-          }
           setSession(session);
           if (session) {
             try {
@@ -116,8 +104,6 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   }, [session, loading, pathname, router]);
 
   async function signOut() {
-  localStorage.removeItem('jjs_remember_me');
-  sessionStorage.removeItem('jjs_session_only');
   try {
     const timeout = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('Sign out timed out after 5s')), 5000)

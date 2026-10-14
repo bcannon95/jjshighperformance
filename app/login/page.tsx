@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabase';
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [staySignedIn, setStaySignedIn] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<'login' | 'forgot'>('login');
@@ -20,12 +19,6 @@ export default function LoginPage() {
     if (error) {
       setError(error.message);
       setLoading(false);
-    } else {
-      if (!staySignedIn) {
-        sessionStorage.setItem('jjs_session_only', 'true');
-      } else {
-        localStorage.setItem('jjs_remember_me', 'true');
-      }
     }
     // On success, AuthProvider's onAuthStateChange fires and redirects to /
   }
@@ -153,16 +146,6 @@ export default function LoginPage() {
                 placeholder="••••••••"
               />
             </div>
-
-            <label className="flex items-center gap-2.5 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={staySignedIn}
-                onChange={(e) => setStaySignedIn(e.target.checked)}
-                className="w-4 h-4 rounded border-jj-grey/40 accent-brand cursor-pointer"
-              />
-              <span className="text-sm text-gray-600 dark:text-gray-400">Stay signed in</span>
-            </label>
 
             {error && (
               <p className="text-sm text-red-500 dark:text-red-400 text-center">{error}</p>

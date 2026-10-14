@@ -19,7 +19,9 @@ export default function TopBar() {
     .slice(0, 2);
 
   return (
-    <div className="h-14 bg-white dark:bg-gray-900 border-b border-jj-grey/40 dark:border-gray-700 flex items-center justify-end px-6 gap-4 shrink-0 relative z-40">
+    <div className="bg-white dark:bg-gray-900 border-b border-jj-grey/40 dark:border-gray-700 shrink-0 relative z-40"
+         style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+    <div className="h-14 flex items-center justify-end px-6 gap-4">
       <button
         onClick={toggle}
         className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
@@ -97,6 +99,7 @@ export default function TopBar() {
           </div>
         )}
       </div>
+    </div>
     </div>
   );
 }
