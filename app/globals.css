@@ -2,9 +2,55 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── iOS input zoom prevention ────────────────────────────────────────────────
+   iOS auto-zooms any focused input with font-size < 16px. This rule sits
+   outside @layer so it wins over Tailwind's text-sm/text-xs utilities without
+   needing to touch every input individually.
+────────────────────────────────────────────────────────────────────────────── */
+input, textarea, select {
+  font-size: max(1rem, 16px);
+}
+
 @layer base {
+  /* ── Native-app feel ────────────────────────────────────────────────────────
+     Prevents pinch-to-zoom, tap highlight flash, text selection on tap,
+     and rubber-band overscroll — making the Capacitor WebView behave like
+     a native app rather than a browser.
+  ─────────────────────────────────────────────────────────────────────────── */
+  html {
+    /* Block pinch-to-zoom at the CSS level (works alongside viewport meta) */
+    touch-action: pan-x pan-y;
+    /* Prevent rubber-band overscroll on the root */
+    overscroll-behavior: none;
+    height: 100%;
+  }
+
   body {
     font-family: var(--font-rubik), Rubik, sans-serif;
+    /* Inherit touch constraints */
+    touch-action: pan-x pan-y;
+    overscroll-behavior: none;
+    height: 100%;
+    /* Remove the gray tap-flash on iOS */
+    -webkit-tap-highlight-color: transparent;
+    /* Prevent text selection on tap/long-press (native apps don't do this) */
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* Allow text selection inside explicitly editable or content areas */
+  input, textarea, [contenteditable] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  /* Momentum (inertia) scrolling for any scrollable container */
+  .overflow-y-auto,
+  .overflow-y-scroll,
+  .overflow-auto,
+  .overflow-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
 
   h1, h2, h3, h4, h5, h6 {

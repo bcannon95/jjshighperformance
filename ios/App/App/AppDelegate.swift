@@ -13,11 +13,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func applicationDidBecomeActive(_ application: UIApplication) {
-        // Disable pinch-to-zoom on the Capacitor WebView
+        // Disable pinch-to-zoom via the Capacitor bridge's webView reference,
+        // which is more reliable than hunting through the view hierarchy.
         DispatchQueue.main.async {
-            if let rootVC = self.window?.rootViewController,
-               let webView = rootVC.view.subviews.first(where: { $0 is WKWebView }) as? WKWebView {
-                webView.scrollView.delegate = nil
+            if let capVC = self.window?.rootViewController as? CAPBridgeViewController,
+               let webView = capVC.webView {
                 webView.scrollView.minimumZoomScale = 1.0
                 webView.scrollView.maximumZoomScale = 1.0
                 webView.scrollView.bouncesZoom = false
