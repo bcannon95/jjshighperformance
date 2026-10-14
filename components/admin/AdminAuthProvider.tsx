@@ -75,13 +75,29 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     init();
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      async (_event, newSession) => {
+      (_event, newSession) => {
         if (!isMounted) return;
+
+        // INITIAL_SESSION is handled by init() above — skip it here to avoid
+        // double-fetching the trainer and interfering with the loading state.
+        if (_event === 'INITIAL_SESSION') return;
+
         setSession(newSession);
 
         if (newSession) {
-          const trainerRecord = await fetchTrainer(newSession.user.id);
-          if (isMounted) setTrainer(trainerRecord);
+          // Keep the shell in loading state until the trainer record is fetched,
+          // otherwise AdminShell briefly sees session≠null + trainer=null and
+          // renders the "Access not available" error screen.
+          // Defer the query so the callback stays synchronous (awaiting inside
+          // onAuthStateChange deadlocks via fetchTrainer → getSession → auth).
+          setLoading(true);
+          setTimeout(async () => {
+            const trainerRecord = await fetchTrainer(newSession.user.id);
+            if (isMounted) {
+              setTrainer(trainerRecord);
+              setLoading(false);
+            }
+          }, 0);
         } else {
           setTrainer(null);
         }
