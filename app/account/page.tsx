@@ -247,32 +247,56 @@ export default function AccountPage() {
   const selectCls = INPUT_CLS;
 
   return (
-    <div className="flex h-full bg-jj-neutral dark:bg-gray-950">
-      {/* Sidebar */}
-      <div className="w-60 bg-white dark:bg-gray-900 border-r border-jj-grey/40 dark:border-gray-700 py-6 shrink-0">
-        <h2 className="font-heading text-2xl px-5 pb-4 text-gray-900 dark:text-white">My Account</h2>
-        {SECTIONS.map((s) => {
-          const isActive = active === s.id;
-          const Icon = s.Icon;
-          return (
-            <button
-              key={s.id}
-              onClick={() => setActive(s.id)}
-              className={`w-full flex items-center gap-2.5 px-5 py-2.5 text-sm font-medium border-l-[3px] transition-colors ${
-                isActive
-                  ? 'border-brand bg-brand/10 text-gray-900 dark:text-white'
-                  : 'border-transparent text-gray-700 dark:text-gray-400 hover:bg-jj-neutral dark:hover:bg-gray-800'
-              }`}
-            >
-              <Icon size={16} />
-              {s.label}
-            </button>
-          );
-        })}
+    <div className="flex flex-col md:flex-row h-full bg-jj-neutral dark:bg-gray-950">
+      {/* Sidebar — desktop: vertical left panel | mobile: horizontal scroll tabs */}
+      <div className="md:w-60 bg-white dark:bg-gray-900 md:border-r border-b border-jj-grey/40 dark:border-gray-700 md:py-6 shrink-0">
+        <h2 className="font-heading text-2xl px-5 py-4 md:pb-4 md:pt-0 text-gray-900 dark:text-white hidden md:block">My Account</h2>
+        {/* Mobile: horizontal scrollable tabs */}
+        <div className="flex md:hidden overflow-x-auto gap-1 px-3 py-2">
+          {SECTIONS.map((s) => {
+            const isActive = active === s.id;
+            const Icon = s.Icon;
+            return (
+              <button
+                key={s.id}
+                onClick={() => setActive(s.id)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap shrink-0 transition-colors ${
+                  isActive
+                    ? 'bg-brand text-white'
+                    : 'bg-jj-neutral dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                }`}
+              >
+                <Icon size={13} />
+                {s.label}
+              </button>
+            );
+          })}
+        </div>
+        {/* Desktop: vertical list */}
+        <div className="hidden md:block">
+          {SECTIONS.map((s) => {
+            const isActive = active === s.id;
+            const Icon = s.Icon;
+            return (
+              <button
+                key={s.id}
+                onClick={() => setActive(s.id)}
+                className={`w-full flex items-center gap-2.5 px-5 py-2.5 text-sm font-medium border-l-[3px] transition-colors ${
+                  isActive
+                    ? 'border-brand bg-brand/10 text-gray-900 dark:text-white'
+                    : 'border-transparent text-gray-700 dark:text-gray-400 hover:bg-jj-neutral dark:hover:bg-gray-800'
+                }`}
+              >
+                <Icon size={16} />
+                {s.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Content */}
-      <div className="flex-1 p-8 overflow-y-auto">
+      <div className="flex-1 p-4 md:p-8 overflow-y-auto">
 
         {/* ── PROFILE ──────────────────────────────────────────────────────── */}
         {active === 'profile' && (

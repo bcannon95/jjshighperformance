@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 import { Bell, ChevronDown, User, LogOut, Sun, Moon } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { useAuth } from './AuthProvider';
@@ -83,12 +84,13 @@ export default function TopBar() {
         </button>
         {showUser && (
           <div className="absolute right-0 top-12 w-52 bg-white dark:bg-gray-800 border border-jj-grey/40 dark:border-gray-700 rounded-lg shadow-lg py-1 z-50">
-            <a
+            <Link
               href="/account"
+              onClick={() => setShowUser(false)}
               className="flex items-center gap-3 px-4 py-2.5 hover:bg-jj-neutral dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-200"
             >
               <User size={16} /> My Account
-            </a>
+            </Link>
             <hr className="my-1 border-jj-grey/40 dark:border-gray-700" />
             <button
               onClick={signOut}

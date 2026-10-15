@@ -41,7 +41,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <TopBar />
         {/* pb accounts for fixed bottom nav + iOS home indicator */}
         <main
-          className="flex-1 overflow-y-auto pb-16 md:pb-0"
+          className="flex-1 overflow-y-auto overflow-x-hidden pb-16 md:pb-0"
           style={{ paddingBottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}
         >
           {children}

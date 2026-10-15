@@ -659,7 +659,7 @@ export default function Dashboard() {
 
       {/* CONFIGURE WIDGETS MODAL */}
         {showWidgetConfig && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             {/* backdrop */}
             <div
               className="absolute inset-0 bg-black/40"
@@ -763,7 +763,7 @@ export default function Dashboard() {
 
       {/* ADD ACTIVITY MODAL */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           {/* backdrop */}
           <div
             className="absolute inset-0 bg-black/40"
