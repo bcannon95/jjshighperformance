@@ -125,6 +125,8 @@ export default function RunsPage() {
   const elapsedRef      = useRef(0)
   const gpsStartTimeRef = useRef<Date | null>(null)  // first valid GPS lock — used for accurate pace
   const modeRef         = useRef<'idle' | 'running'>('idle')
+  // Synchronous mirror of activePoints — avoids stale-state on save
+  const allPointsRef    = useRef<RunPoint[]>([])
 
   useEffect(() => { distanceMRef.current = distanceM }, [distanceM])
   useEffect(() => { elapsedRef.current   = elapsed   }, [elapsed])
@@ -170,16 +172,16 @@ export default function RunsPage() {
   }, [])
 
   // ── GPS position handler ──────────────────────────────────────────────────
-  // Accuracy threshold raised to 100 m so points aren't silently dropped in
-  // moderate conditions. Noise filter reduced to 2 m so slow running pace
-  // (≈2.8 m/s) doesn't lose movement to the filter.
+  // Accuracy threshold is 100 m — the 12 m/s sanity check below handles real
+  // GPS glitches. Dropping points at 50 m caused time gaps that inflated pace
+  // by ~90 s/km in moderate conditions (bridges, buildings, cloud cover).
 
   const handleGpsPosition = useCallback((pos: GeolocationPosition) => {
     const accuracy = pos.coords.accuracy
     setGpsAccuracy(Math.round(accuracy))
 
-    // Skip poor fixes — 50 m is the threshold for usable run tracking
-    if (accuracy > 50) return
+    // Skip truly poor fixes — 100 m still filters satellite noise
+    if (accuracy > 100) return
 
     if (!gpsStartTimeRef.current) gpsStartTimeRef.current = new Date()
 
@@ -205,6 +207,7 @@ export default function RunsPage() {
         setDistanceM(distanceMRef.current)
       }
       lastPointRef.current = point
+      allPointsRef.current = [...allPointsRef.current, point]
 
       // Persist to localStorage so data survives backgrounding
       try {
@@ -232,7 +235,7 @@ export default function RunsPage() {
         watchIdRef.current = navigator.geolocation.watchPosition(
           handleGpsPosition,
           (err) => setGpsError(`GPS: ${err.message}`),
-          { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 3000 },
         )
       }
     }
@@ -258,6 +261,7 @@ export default function RunsPage() {
     distanceMRef.current    = 0
     elapsedRef.current      = 0
     gpsStartTimeRef.current = null
+    allPointsRef.current    = []
 
     try { localStorage.removeItem('jjs_active_run') } catch {}
 
@@ -282,7 +286,7 @@ export default function RunsPage() {
     watchIdRef.current = navigator.geolocation.watchPosition(
       handleGpsPosition,
       (err) => setGpsError(`GPS: ${err.message}`),
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 3000 },
     )
   }
 
@@ -311,7 +315,8 @@ export default function RunsPage() {
     const durationS  = elapsedRef.current
     const distM      = distanceMRef.current
     const avgPace    = distM > 0 ? Math.round((durationS / distM) * 1000) : null
-    const pointsSnap = [...activePoints]
+    // Use the ref — activePoints state may lag the last GPS callbacks
+    const pointsSnap = [...allPointsRef.current]
     const startedAt  = startTimeRef.current.toISOString()
 
     try {
