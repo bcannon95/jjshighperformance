@@ -27,6 +27,14 @@ type Run = {
   avg_pace_s_per_km: number | null
 }
 
+type SummaryData = {
+  distanceM: number
+  durationS: number
+  avgPaceSecPerKm: number | null
+  points: RunPoint[]
+  startedAt: string
+}
+
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 function haversine(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
@@ -91,8 +99,11 @@ export default function RunsPage() {
   const { clientId } = useAuth()
 
   // View state
-  const [mode, setMode]       = useState<'idle' | 'running'>('idle')
+  const [mode, setMode]       = useState<'idle' | 'running' | 'summary'>('idle')
   const [mapOpen, setMapOpen] = useState(false)
+
+  // Post-run summary
+  const [summaryData, setSummaryData] = useState<SummaryData | null>(null)
 
   // Run history
   const [runs, setRuns]           = useState<Run[]>([])
@@ -353,11 +364,19 @@ export default function RunsPage() {
 
       try { localStorage.removeItem('jjs_active_run') } catch {}
 
-      setMode('idle')
+      setSummaryData({
+        distanceM: distM,
+        durationS: durationS,
+        avgPaceSecPerKm: avgPace,
+        points: pointsSnap,
+        startedAt: startedAt,
+      })
+      setMode('summary')
       setActivePoints([])
       setElapsed(0)
       setDistanceM(0)
       setBgWarning(false)
+      setMapOpen(false)
       startTimeRef.current    = null
       gpsStartTimeRef.current = null
       await loadRuns()
@@ -626,6 +645,74 @@ export default function RunsPage() {
             ) : (
               <Square size={28} fill="white" color="white" />
             )}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Post-run summary ──────────────────────────────────────────────────────
+
+  if (mode === 'summary' && summaryData) {
+    const mapCenter: [number, number] | null =
+      summaryData.points.length > 0
+        ? [summaryData.points[0].lat, summaryData.points[0].lng]
+        : null
+
+    return (
+      <div className="flex flex-col h-full bg-gray-950 overflow-y-auto">
+        {/* Header */}
+        <div className="px-6 pt-6 pb-4 text-center">
+          <p className="text-xs text-gray-500 uppercase tracking-widest mb-1">
+            {formatDate(summaryData.startedAt)}
+          </p>
+          <h1 className="font-heading text-3xl text-white">Run Complete</h1>
+        </div>
+
+        {/* Stats */}
+        <div className="px-6 mb-4">
+          <div className="bg-gray-800 rounded-2xl p-5 grid grid-cols-3 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-brand tabular-nums">
+                {fmtDistance(summaryData.distanceM)}
+              </div>
+              <div className="text-[11px] text-gray-400 uppercase tracking-wider mt-1">Distance</div>
+            </div>
+            <div className="text-center border-x border-gray-700">
+              <div className="text-2xl font-bold text-white tabular-nums">
+                {fmtDuration(summaryData.durationS)}
+              </div>
+              <div className="text-[11px] text-gray-400 uppercase tracking-wider mt-1">Time</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-brand tabular-nums">
+                {fmtPace(summaryData.avgPaceSecPerKm)}
+              </div>
+              <div className="text-[11px] text-gray-400 uppercase tracking-wider mt-1">Pace /km</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Route map */}
+        {summaryData.points.length > 1 && mapCenter && (
+          <div className="mx-6 mb-6 rounded-2xl overflow-hidden h-64 border border-gray-700">
+            <RunMap points={summaryData.points} center={mapCenter} fit />
+          </div>
+        )}
+
+        {/* Done button */}
+        <div
+          className="px-6 mt-auto"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)' }}
+        >
+          <button
+            onClick={() => {
+              setSummaryData(null)
+              setMode('idle')
+            }}
+            className="w-full py-4 rounded-2xl bg-brand text-gray-900 font-bold text-lg"
+          >
+            Done
           </button>
         </div>
       </div>
