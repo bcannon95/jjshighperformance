@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import {
   User, Ruler, Bell, Video, Lock, Coins,
-  CreditCard, ShoppingBag, Receipt, Pencil, Check,
+  CreditCard, ShoppingBag, Receipt, Pencil, Check, X,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/components/AuthProvider';
@@ -58,6 +58,9 @@ function SuccessMsg({ children }: { children: React.ReactNode }) {
 export default function AccountPage() {
   const { user, clientId } = useAuth();
   const [active, setActive] = useState<SectionId>('profile');
+
+  // ── Payment ───────────────────────────────────────────────────────────────
+  const [showAddPayment, setShowAddPayment] = useState(false);
 
   // ── Session Credits ────────────────────────────────────────────────────────
   const [sessionCredits, setSessionCredits] = useState<{
@@ -681,12 +684,46 @@ export default function AccountPage() {
               <CreditCard size={28} className="text-jj-grey/40 mx-auto mb-3" />
               <p className="text-sm text-gray-500 dark:text-gray-400">No payment methods on file.</p>
             </div>
-            <button className="px-4 py-2 border border-jj-grey/40 dark:border-gray-600 rounded-md text-sm text-gray-700 dark:text-gray-300 hover:bg-jj-neutral dark:hover:bg-gray-800">
+            <button
+              onClick={() => setShowAddPayment(true)}
+              className="px-4 py-2 border border-jj-grey/40 dark:border-gray-600 rounded-md text-sm text-gray-700 dark:text-gray-300 hover:bg-jj-neutral dark:hover:bg-gray-800"
+            >
               + Add payment method
             </button>
             <p className="mt-3 text-xs text-gray-400 dark:text-gray-500">
               Card details are entered securely on the payment provider — never stored here.
             </p>
+
+            {showAddPayment && (
+              <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                <div className="absolute inset-0 bg-black/40" onClick={() => setShowAddPayment(false)} />
+                <div className="relative w-full max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-heading text-lg tracking-widest text-gray-700 dark:text-gray-200 uppercase">
+                      Add Payment Method
+                    </h3>
+                    <button onClick={() => setShowAddPayment(false)}>
+                      <X size={20} />
+                    </button>
+                  </div>
+                  <div className="flex flex-col items-center text-center py-4 gap-3">
+                    <CreditCard size={36} className="text-jj-blue" />
+                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                      Payment methods are managed by your trainer.
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Contact JJ&apos;s High Performance to update your billing details or add a new card.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowAddPayment(false)}
+                    className="mt-2 w-full py-2.5 rounded-lg bg-gray-900 text-brand text-sm font-semibold"
+                  >
+                    Got it
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
