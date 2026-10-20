@@ -6,10 +6,13 @@ import { useAuth } from '@/components/AuthProvider';
 import Link from 'next/link';
 import {
   Settings,
-  Menu,
   TrendingUp,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
+  ChevronDown,
+  Eye,
+  EyeOff,
   Plus,
   Calendar,
   Trophy,
@@ -90,7 +93,6 @@ export default function Dashboard() {
   const [progressWidgets, setProgressWidgets] = useState(defaultProgressWidgets);
   const [showWidgetConfig, setShowWidgetConfig] = useState(false);
   const [draftWidgets, setDraftWidgets] = useState(defaultProgressWidgets);
-  const [draggedWidget, setDraggedWidget] = useState<{ label: string; from: 'displayed' | 'hidden' } | null>(null);
 
   // Load latest body weight + earned badges on mount
   useEffect(() => {
@@ -660,90 +662,74 @@ export default function Dashboard() {
       {/* CONFIGURE WIDGETS MODAL */}
         {showWidgetConfig && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            {/* backdrop */}
-            <div
-              className="absolute inset-0 bg-black/40"
-              onClick={() => setShowWidgetConfig(false)}
-            />
-            <div className="relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-6">
+            <div className="absolute inset-0 bg-black/40" onClick={() => setShowWidgetConfig(false)} />
+            <div className="relative w-full max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-heading text-lg tracking-widest text-gray-700 dark:text-gray-200 uppercase">
-                  Configure dashboard widgets
+                  Configure Widgets
                 </h3>
                 <button onClick={() => setShowWidgetConfig(false)}>
                   <X size={20} />
                 </button>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs font-medium text-jj-grey dark:text-gray-400 mb-2 uppercase tracking-wide">Displayed Tiles</p>
-                  <div
-                    className="min-h-[140px] border border-jj-grey/20 dark:border-gray-700 rounded-lg p-2 space-y-1"
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={() => {
-                      if (!draggedWidget) return;
-                      setDraftWidgets((prev) => prev.map((w) => (w.label === draggedWidget.label ? { ...w, hidden: false } : w)));
-                      setDraggedWidget(null);
-                    }}
-                  >
-                    {draftWidgets.filter((w) => !w.hidden).map((w) => (
-                      <div
-                        key={w.label}
-                        draggable
-                        onDragStart={() => setDraggedWidget({ label: w.label, from: 'displayed' })}
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={(e) => {
-                          e.stopPropagation();
-                          if (!draggedWidget) return;
-                          setDraftWidgets((prev) => {
-                            const moved = prev.find((x) => x.label === draggedWidget.label);
-                            if (!moved) return prev;
-                            const rest = prev.filter((x) => x.label !== draggedWidget.label);
-                            const targetIndex = rest.findIndex((x) => x.label === w.label);
-                            const updated = { ...moved, hidden: false };
-                            rest.splice(targetIndex, 0, updated);
-                            return rest;
-                          });
-                          setDraggedWidget(null);
-                        }}
-                        className="flex items-center gap-2 px-2 py-2 bg-white dark:bg-gray-800 border border-jj-grey/20 dark:border-gray-700 rounded-lg cursor-move text-sm text-gray-700 dark:text-gray-200"
-                      >
-                        <Menu size={14} className="text-jj-grey" />
-                        {w.label}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-jj-grey dark:text-gray-400 mb-2 uppercase tracking-wide">Hidden Tiles</p>
-                  <div
-                    className="min-h-[140px] border border-dashed border-jj-grey/30 dark:border-gray-700 rounded-lg p-2 space-y-1"
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={() => {
-                      if (!draggedWidget) return;
-                      setDraftWidgets((prev) => prev.map((w) => (w.label === draggedWidget.label ? { ...w, hidden: true } : w)));
-                      setDraggedWidget(null);
-                    }}
-                  >
-                    {draftWidgets.filter((w) => w.hidden).length === 0 ? (
-                      <p className="text-xs text-jj-grey/50 text-center mt-6">Drag tiles here to hide them</p>
-                    ) : (
-                      draftWidgets.filter((w) => w.hidden).map((w) => (
-                        <div
-                          key={w.label}
-                          draggable
-                          onDragStart={() => setDraggedWidget({ label: w.label, from: 'hidden' })}
-                          className="flex items-center gap-2 px-2 py-2 bg-white dark:bg-gray-800 border border-jj-grey/20 dark:border-gray-700 rounded-lg cursor-move text-sm text-gray-500 dark:text-gray-400"
-                        >
-                          <Menu size={14} className="text-jj-grey" />
-                          {w.label}
+              <p className="text-xs text-jj-grey dark:text-gray-500 mb-3">
+                Toggle visibility and use arrows to reorder.
+              </p>
+              <div className="space-y-1 max-h-80 overflow-y-auto">
+                {draftWidgets.map((w, i) => {
+                  const visibleIdxs = draftWidgets.map((x, j) => (!x.hidden ? j : -1)).filter((j) => j !== -1);
+                  const posInVisible = visibleIdxs.indexOf(i);
+                  const canUp   = !w.hidden && posInVisible > 0;
+                  const canDown = !w.hidden && posInVisible < visibleIdxs.length - 1;
+
+                  function move(dir: -1 | 1) {
+                    setDraftWidgets((prev) => {
+                      const next = [...prev];
+                      const swapWith = visibleIdxs[posInVisible + dir];
+                      [next[i], next[swapWith]] = [next[swapWith], next[i]];
+                      return next;
+                    });
+                  }
+
+                  return (
+                    <div
+                      key={w.label}
+                      className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border transition-colors ${
+                        w.hidden
+                          ? 'border-jj-grey/15 dark:border-gray-700 opacity-50'
+                          : 'border-jj-grey/20 dark:border-gray-700 bg-white dark:bg-gray-800'
+                      }`}
+                    >
+                      <span className="flex-1 text-sm text-gray-700 dark:text-gray-200">{w.label}</span>
+                      {!w.hidden && (
+                        <div className="flex flex-col">
+                          <button
+                            onClick={() => move(-1)}
+                            disabled={!canUp}
+                            className="p-0.5 text-jj-grey disabled:opacity-20 hover:text-gray-900 dark:hover:text-white"
+                          >
+                            <ChevronUp size={14} />
+                          </button>
+                          <button
+                            onClick={() => move(1)}
+                            disabled={!canDown}
+                            className="p-0.5 text-jj-grey disabled:opacity-20 hover:text-gray-900 dark:hover:text-white"
+                          >
+                            <ChevronDown size={14} />
+                          </button>
                         </div>
-                      ))
-                    )}
-                  </div>
-                </div>
+                      )}
+                      <button
+                        onClick={() => setDraftWidgets((prev) => prev.map((x) => x.label === w.label ? { ...x, hidden: !x.hidden } : x))}
+                        className="p-1 text-jj-grey hover:text-gray-900 dark:hover:text-white"
+                      >
+                        {w.hidden ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
-              <div className="flex justify-end gap-2 mt-6">
+              <div className="flex justify-end gap-2 mt-5">
                 <button
                   onClick={() => setShowWidgetConfig(false)}
                   className="px-4 py-2 text-sm rounded-lg border border-jj-grey/30 dark:border-gray-700 text-gray-700 dark:text-gray-200"
