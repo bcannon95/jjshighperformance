@@ -94,13 +94,14 @@ export default function AccountPage() {
   const [videoSuccess, setVideoSuccess] = useState(false);
 
   // ── Notifications ─────────────────────────────────────────────────────────
-  const [pushEnabled, setPushEnabled]   = useState(true);
-  const [emailEnabled, setEmailEnabled] = useState(true);
+  const [pushEnabled, setPushEnabled]   = useState(false);
+  const [emailEnabled, setEmailEnabled] = useState(false);
   const [categoryPrefs, setCategoryPrefs] = useState<Record<string, boolean>>(
-    () => Object.fromEntries(NOTIFICATION_CATEGORIES.map((c) => [c, true]))
+    () => Object.fromEntries(NOTIFICATION_CATEGORIES.map((c) => [c, false]))
   );
-  const [notifSaving, setNotifSaving]   = useState(false);
-  const [notifSuccess, setNotifSuccess] = useState(false);
+  const [notifSaving, setNotifSaving]     = useState(false);
+  const [notifSuccess, setNotifSuccess]   = useState(false);
+  const [pushStatus, setPushStatus]       = useState<'idle' | 'requesting' | 'denied' | 'unsupported'>('idle');
 
   // ── Password ──────────────────────────────────────────────────────────────
   const [newPassword, setNewPassword]         = useState('');
@@ -194,6 +195,59 @@ export default function AccountPage() {
     setVideoSaving(false);
     setVideoSuccess(true);
     setTimeout(() => setVideoSuccess(false), 3000);
+  }
+
+  async function subscribeToPush(): Promise<boolean> {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      setPushStatus('unsupported');
+      return false;
+    }
+    setPushStatus('requesting');
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      setPushStatus('denied');
+      setPushEnabled(false);
+      return false;
+    }
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const existing = await reg.pushManager.getSubscription();
+      const sub = existing ?? await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+      });
+      const { endpoint, keys } = sub.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } };
+      await supabase.from('push_subscriptions').upsert(
+        { user_id: clientId, user_type: 'client', endpoint, p256dh: keys.p256dh, auth_key: keys.auth, push_enabled: true },
+        { onConflict: 'endpoint' }
+      );
+      setPushStatus('idle');
+      return true;
+    } catch {
+      setPushStatus('idle');
+      return false;
+    }
+  }
+
+  async function unsubscribeFromPush() {
+    if (!('serviceWorker' in navigator)) return;
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      await supabase.from('push_subscriptions').delete().eq('endpoint', sub.toJSON().endpoint!);
+      await sub.unsubscribe();
+    }
+  }
+
+  async function handlePushToggle() {
+    const next = !pushEnabled;
+    if (next) {
+      const ok = await subscribeToPush();
+      if (ok) setPushEnabled(true);
+    } else {
+      await unsubscribeFromPush();
+      setPushEnabled(false);
+    }
   }
 
   async function saveNotifications() {
@@ -464,13 +518,24 @@ export default function AccountPage() {
           <div className="max-w-2xl">
             <h3 className="font-heading text-2xl mb-6 text-gray-900 dark:text-white">Notifications</h3>
             <div className="space-y-4 mb-8">
-              <label className="flex items-center justify-between p-3 border border-jj-grey/30 dark:border-gray-700 rounded-lg cursor-pointer">
+              <div className="flex items-center justify-between p-3 border border-jj-grey/30 dark:border-gray-700 rounded-lg">
                 <div>
                   <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Browser Push Notifications</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Send notifications to web and mobile applications.</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {pushStatus === 'requesting' ? 'Requesting permission…' :
+                     pushStatus === 'denied'     ? 'Permission denied — enable in browser settings.' :
+                     pushStatus === 'unsupported'? 'Not supported on this browser.' :
+                     'Notify you about messages and updates.'}
+                  </p>
                 </div>
-                <input type="checkbox" checked={pushEnabled} onChange={() => setPushEnabled((v) => !v)} className="w-5 h-5 accent-brand" />
-              </label>
+                <input
+                  type="checkbox"
+                  checked={pushEnabled}
+                  onChange={handlePushToggle}
+                  disabled={pushStatus === 'requesting'}
+                  className="w-5 h-5 accent-brand disabled:opacity-50"
+                />
+              </div>
               <label className="flex items-center justify-between p-3 border border-jj-grey/30 dark:border-gray-700 rounded-lg cursor-pointer">
                 <div>
                   <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Email Notifications</p>
@@ -611,17 +676,10 @@ export default function AccountPage() {
         {/* ── PAYMENT INFORMATION ───────────────────────────────────────────── */}
         {active === 'payment' && (
           <div className="max-w-2xl">
-            <h3 className="font-heading text-2xl mb-6 text-gray-900 dark:text-white">Payment info</h3>
-            <div className="flex items-center justify-between p-4 border border-jj-grey/30 dark:border-gray-700 rounded-lg mb-4">
-              <div className="flex items-center gap-3">
-                <CreditCard size={22} className="text-jj-blue" />
-                <div>
-                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200">MasterCard •••• 8607</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Expiration: 1/2029</p>
-                </div>
-                <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-brand/15 text-brand">Default</span>
-              </div>
-              <button className="text-sm text-jj-coral hover:underline">Delete</button>
+            <h3 className="font-heading text-2xl mb-6 text-gray-900 dark:text-white">Payment Information</h3>
+            <div className="text-center py-12 border border-dashed border-jj-grey/40 dark:border-gray-700 rounded-lg mb-4">
+              <CreditCard size={28} className="text-jj-grey/40 mx-auto mb-3" />
+              <p className="text-sm text-gray-500 dark:text-gray-400">No payment methods on file.</p>
             </div>
             <button className="px-4 py-2 border border-jj-grey/40 dark:border-gray-600 rounded-md text-sm text-gray-700 dark:text-gray-300 hover:bg-jj-neutral dark:hover:bg-gray-800">
               + Add payment method
@@ -637,14 +695,24 @@ export default function AccountPage() {
           <div className="max-w-2xl">
             <h3 className="font-heading text-2xl mb-6 text-gray-900 dark:text-white">Purchases</h3>
             <div className="space-y-6">
-              {(['Main Product', 'Add-ons', 'Session Packs'] as const).map((title) => (
-                <div key={title}>
-                  <p className="text-sm font-heading tracking-wide uppercase text-jj-grey dark:text-gray-500 mb-2">{title}</p>
-                  <div className="p-4 border border-jj-grey/30 dark:border-gray-700 rounded-lg text-sm text-gray-500 dark:text-gray-400">
-                    No {title}
-                  </div>
+              <div>
+                <p className="text-sm font-heading tracking-wide uppercase text-jj-grey dark:text-gray-500 mb-2">Main Product</p>
+                <div className="p-4 border border-jj-grey/30 dark:border-gray-700 rounded-lg text-sm text-gray-500 dark:text-gray-400">
+                  No active subscription. Contact your trainer to get set up.
                 </div>
-              ))}
+              </div>
+              <div>
+                <p className="text-sm font-heading tracking-wide uppercase text-jj-grey dark:text-gray-500 mb-2">Add-ons</p>
+                <div className="p-4 border border-jj-grey/30 dark:border-gray-700 rounded-lg text-sm text-gray-500 dark:text-gray-400">
+                  No add-ons purchased.
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-heading tracking-wide uppercase text-jj-grey dark:text-gray-500 mb-2">Session Packs</p>
+                <div className="p-4 border border-jj-grey/30 dark:border-gray-700 rounded-lg text-sm text-gray-500 dark:text-gray-400">
+                  No session packs purchased.
+                </div>
+              </div>
             </div>
           </div>
         )}

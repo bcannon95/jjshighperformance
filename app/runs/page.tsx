@@ -135,7 +135,7 @@ export default function RunsPage() {
   const distanceMRef    = useRef(0)
   const elapsedRef      = useRef(0)
   const gpsStartTimeRef = useRef<Date | null>(null)  // first valid GPS lock — used for accurate pace
-  const modeRef         = useRef<'idle' | 'running'>('idle')
+  const modeRef         = useRef<'idle' | 'running' | 'summary'>('idle')
   // Synchronous mirror of activePoints — avoids stale-state on save
   const allPointsRef    = useRef<RunPoint[]>([])
 
