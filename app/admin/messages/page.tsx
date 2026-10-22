@@ -270,8 +270,9 @@ export default function AdminMessagesPage() {
   const [draft, setDraft]                     = useState('')
   const [search, setSearch]                   = useState('')
   const [showNewModal, setShowNewModal]       = useState(false)
-  const [showParticipants, setShowParticipants] = useState(false)
-  const [convParticipants, setConvParticipants] = useState<string[]>([])
+  const [showParticipants, setShowParticipants]     = useState(false)
+  const [convParticipants, setConvParticipants]     = useState<string[]>([])
+  const [convClientIds, setConvClientIds]           = useState<number[]>([])
 
   const bottomRef     = useRef<HTMLDivElement>(null)
   const selectedIdRef = useRef<number | null>(null)
@@ -425,6 +426,7 @@ export default function AdminMessagesPage() {
       .in('id', clientIds)
 
     setConvParticipants((clients ?? []).map((c) => `${c.first_name ?? ''} ${c.last_name ?? ''}`.trim() || 'Client'))
+    setConvClientIds((clients ?? []).map((c) => c.id))
   }, [])
 
   // ── Realtime + message load on conversation select ─────────────────────────
@@ -476,6 +478,29 @@ export default function AdminMessagesPage() {
       body,
     })
     setSending(false)
+
+    // Fire push notifications to all client participants — non-blocking
+    if (convClientIds.length > 0) {
+      const trainerName = trainer
+        ? `${trainer.first_name ?? ''} ${trainer.last_name ?? ''}`.trim() || 'Your trainer'
+        : 'Your trainer'
+      const preview = body.length > 100 ? body.slice(0, 97) + '…' : body
+      convClientIds.forEach((clientId) => {
+        fetch('/api/push/send', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({
+            userId:  clientId,
+            payload: {
+              title:          trainerName,
+              body:           preview,
+              url:            '/messages',
+              conversationId: selectedId,
+            },
+          }),
+        }).catch(() => {/* non-fatal */})
+      })
+    }
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
