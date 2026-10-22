@@ -26,10 +26,7 @@ export function usePushNotifications(clientId: number | null) {
       }
       if (permStatus.receive !== 'granted') return;
 
-      // Register with APNs
-      await PushNotifications.register();
-
-      // Handle successful registration — store token in DB
+      // Add listener BEFORE register() so we don't miss the event
       PushNotifications.addListener('registration', async (token) => {
         await supabase.from('push_subscriptions').upsert(
           {
@@ -47,6 +44,9 @@ export function usePushNotifications(clientId: number | null) {
       PushNotifications.addListener('registrationError', (err) => {
         console.error('APNs registration error:', err);
       });
+
+      // Register with APNs (after listeners are attached)
+      await PushNotifications.register();
     }
 
     register();
