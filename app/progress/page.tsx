@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { TrendingDown, TrendingUp, Minus } from 'lucide-react'
+import { TrendingDown, TrendingUp, Minus, Plus, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/components/AuthProvider'
 
@@ -69,6 +69,11 @@ function EmptyState({ message }: { message: string }) {
   )
 }
 
+function todayLocal(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export default function ProgressPage() {
   const { clientId } = useAuth()
   const [loading, setLoading] = useState(true)
@@ -77,42 +82,124 @@ export default function ProgressPage() {
   const [measurementLogs, setMeasurementLogs] = useState<MeasurementLog[]>([])
   const [runs, setRuns]                       = useState<RunSummary[]>([])
 
-  useEffect(() => {
+  // Modal states
+  const [showWeightModal, setShowWeightModal]           = useState(false)
+  const [showBioModal, setShowBioModal]                 = useState(false)
+  const [showMeasureModal, setShowMeasureModal]         = useState(false)
+  const [saving, setSaving]                             = useState(false)
+  const [saveError, setSaveError]                       = useState<string | null>(null)
+
+  // Weight form
+  const [weightInput, setWeightInput] = useState('')
+  const [weightDate, setWeightDate]   = useState(todayLocal)
+
+  // Biometrics form
+  const [bioBodyFat, setBioBodyFat]       = useState('')
+  const [bioMuscleMass, setBioMuscleMass] = useState('')
+  const [bioDate, setBioDate]             = useState(todayLocal)
+
+  // Measurements form
+  const [measureDate, setMeasureDate]   = useState(todayLocal)
+  const [measureInputs, setMeasureInputs] = useState<Record<string, string>>({})
+
+  async function load() {
     if (!clientId) return
-    async function load() {
-      setLoading(true)
-      const [wRes, bRes, mRes, rRes] = await Promise.all([
-        supabase
-          .from('body_weight_logs')
-          .select('logged_at, weight_kg')
-          .eq('client_id', clientId)
-          .order('logged_at', { ascending: true })
-          .limit(12),
-        supabase
-          .from('biometric_logs')
-          .select('logged_at, metric, value, unit')
-          .eq('client_id', clientId)
-          .order('logged_at', { ascending: true }),
-        supabase
-          .from('body_measurement_logs')
-          .select('logged_at, neck_cm, chest_cm, waist_cm, hips_cm, left_arm_cm, right_arm_cm, left_thigh_cm, right_thigh_cm, left_calf_cm, right_calf_cm')
-          .eq('client_id', clientId)
-          .order('logged_at', { ascending: true }),
-        supabase
-          .from('runs')
-          .select('started_at, distance_m')
-          .eq('client_id', clientId)
-          .not('finished_at', 'is', null)
-          .order('started_at', { ascending: true }),
-      ])
-      if (wRes.data) setWeightLogs(wRes.data)
-      if (bRes.data) setBiometrics(bRes.data)
-      if (mRes.data) setMeasurementLogs(mRes.data)
-      if (rRes.data) setRuns(rRes.data)
-      setLoading(false)
-    }
+    setLoading(true)
+    const [wRes, bRes, mRes, rRes] = await Promise.all([
+      supabase
+        .from('body_weight_logs')
+        .select('logged_at, weight_kg')
+        .eq('client_id', clientId)
+        .order('logged_at', { ascending: true })
+        .limit(12),
+      supabase
+        .from('biometric_logs')
+        .select('logged_at, metric, value, unit')
+        .eq('client_id', clientId)
+        .order('logged_at', { ascending: true }),
+      supabase
+        .from('body_measurement_logs')
+        .select('logged_at, neck_cm, chest_cm, waist_cm, hips_cm, left_arm_cm, right_arm_cm, left_thigh_cm, right_thigh_cm, left_calf_cm, right_calf_cm')
+        .eq('client_id', clientId)
+        .order('logged_at', { ascending: true }),
+      supabase
+        .from('runs')
+        .select('started_at, distance_m')
+        .eq('client_id', clientId)
+        .not('finished_at', 'is', null)
+        .order('started_at', { ascending: true }),
+    ])
+    if (wRes.data) setWeightLogs(wRes.data)
+    if (bRes.data) setBiometrics(bRes.data)
+    if (mRes.data) setMeasurementLogs(mRes.data)
+    if (rRes.data) setRuns(rRes.data)
+    setLoading(false)
+  }
+
+  useEffect(() => {
     load()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId])
+
+  async function saveWeight() {
+    const kg = parseFloat(weightInput)
+    if (!clientId || isNaN(kg) || kg <= 0) return
+    setSaving(true)
+    setSaveError(null)
+    const { error } = await supabase.from('body_weight_logs').insert({
+      client_id: clientId,
+      weight_kg: kg,
+      logged_at: new Date(weightDate + 'T07:00:00').toISOString(),
+    })
+    setSaving(false)
+    if (error) { setSaveError(error.message); return }
+    setShowWeightModal(false)
+    setWeightInput('')
+    setWeightDate(todayLocal())
+    load()
+  }
+
+  async function saveBiometrics() {
+    if (!clientId) return
+    const rows: { client_id: number; metric: string; value: number; unit: string; logged_at: string }[] = []
+    const ts = new Date(bioDate + 'T07:00:00').toISOString()
+    if (bioBodyFat !== '') rows.push({ client_id: clientId, metric: 'body_fat_pct', value: parseFloat(bioBodyFat), unit: '%', logged_at: ts })
+    if (bioMuscleMass !== '') rows.push({ client_id: clientId, metric: 'muscle_mass_kg', value: parseFloat(bioMuscleMass), unit: ' kg', logged_at: ts })
+    if (rows.length === 0) return
+    setSaving(true)
+    setSaveError(null)
+    const { error } = await supabase.from('biometric_logs').insert(rows)
+    setSaving(false)
+    if (error) { setSaveError(error.message); return }
+    setShowBioModal(false)
+    setBioBodyFat('')
+    setBioMuscleMass('')
+    setBioDate(todayLocal())
+    load()
+  }
+
+  async function saveMeasurements() {
+    if (!clientId) return
+    const row: Record<string, unknown> = {
+      client_id: clientId,
+      logged_at: new Date(measureDate + 'T07:00:00').toISOString(),
+    }
+    MEASUREMENT_FIELDS.forEach(({ key }) => {
+      const v = measureInputs[key]
+      row[key] = v !== undefined && v !== '' ? parseFloat(v) : null
+    })
+    const hasAny = MEASUREMENT_FIELDS.some(({ key }) => row[key] != null)
+    if (!hasAny) return
+    setSaving(true)
+    setSaveError(null)
+    const { error } = await supabase.from('body_measurement_logs').insert(row)
+    setSaving(false)
+    if (error) { setSaveError(error.message); return }
+    setShowMeasureModal(false)
+    setMeasureInputs({})
+    setMeasureDate(todayLocal())
+    load()
+  }
 
   // ── Derived: weight ────────────────────────────────────────────────────────
   const firstWeight  = weightLogs[0]?.weight_kg ?? null
@@ -202,6 +289,47 @@ export default function ProgressPage() {
     },
   ]
 
+  // ── Shared modal chrome ────────────────────────────────────────────────────
+  function Modal({ title, onClose, onSave, saveDisabled, children }: {
+    title: string
+    onClose: () => void
+    onSave: () => void
+    saveDisabled: boolean
+    children: React.ReactNode
+  }) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md shadow-xl">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+            <h2 className="font-semibold text-gray-900 dark:text-white">{title}</h2>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+              <X size={20} />
+            </button>
+          </div>
+          <div className="px-6 py-5 space-y-4">
+            {children}
+            {saveError && <p className="text-sm text-red-500">{saveError}</p>}
+          </div>
+          <div className="flex justify-end gap-3 px-6 pb-5">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onSave}
+              disabled={saving || saveDisabled}
+              className="px-5 py-2 text-sm font-semibold bg-jj-blue text-white rounded-lg hover:opacity-90 disabled:opacity-50"
+            >
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (loading) {
     return (
       <div className="p-8 bg-jj-neutral dark:bg-gray-950 min-h-full">
@@ -250,9 +378,17 @@ export default function ProgressPage() {
 
       {/* ── Weight trend chart ────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-jj-grey/30 dark:border-gray-700 mb-6">
-        <h2 className="font-heading text-2xl mb-5 text-gray-900 dark:text-white">
-          Weight Trend {chartData.length > 0 && `(${chartData.length} entries)`}
-        </h2>
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="font-heading text-2xl text-gray-900 dark:text-white">
+            Weight Trend {chartData.length > 0 && `(${chartData.length} entries)`}
+          </h2>
+          <button
+            onClick={() => { setSaveError(null); setShowWeightModal(true) }}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-jj-blue text-white rounded-lg hover:opacity-90"
+          >
+            <Plus size={15} /> Log Weight
+          </button>
+        </div>
         {chartData.length === 0 ? (
           <EmptyState message="No weight entries logged yet." />
         ) : (
@@ -274,6 +410,42 @@ export default function ProgressPage() {
                 </div>
               )
             })}
+          </div>
+        )}
+      </div>
+
+      {/* ── Biometrics ────────────────────────────────────────────────────── */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-jj-grey/30 dark:border-gray-700 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-heading text-2xl text-gray-900 dark:text-white">Biometrics</h2>
+          <button
+            onClick={() => { setSaveError(null); setShowBioModal(true) }}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-jj-blue text-white rounded-lg hover:opacity-90"
+          >
+            <Plus size={15} /> Log Biometrics
+          </button>
+        </div>
+        {!latestBF && !latestMM && !latestBMI ? (
+          <EmptyState message="No biometric data logged yet." />
+        ) : (
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: 'Body Fat', entry: latestBF, unit: '%' },
+              { label: latestMM ? (BIOMETRIC_MAP[latestMM.metric]?.label ?? 'Muscle Mass') : 'Muscle Mass', entry: latestMM, unit: ' kg' },
+              { label: 'BMI', entry: latestBMI, unit: '' },
+            ].map(({ label, entry }) => (
+              <div key={label} className="bg-jj-neutral dark:bg-gray-900 rounded-lg p-4">
+                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">{label}</div>
+                <div className="text-xl font-bold text-gray-900 dark:text-white">
+                  {entry ? `${entry.value}${entry.unit}` : '—'}
+                </div>
+                {entry && (
+                  <div className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">
+                    {formatDate(entry.logged_at)}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -327,7 +499,15 @@ export default function ProgressPage() {
 
       {/* ── Body measurements ─────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-jj-grey/30 dark:border-gray-700">
-        <h2 className="font-heading text-2xl mb-4 text-gray-900 dark:text-white">Body Measurements</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-heading text-2xl text-gray-900 dark:text-white">Body Measurements</h2>
+          <button
+            onClick={() => { setSaveError(null); setShowMeasureModal(true) }}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-jj-blue text-white rounded-lg hover:opacity-90"
+          >
+            <Plus size={15} /> Log Measurements
+          </button>
+        </div>
         {!latestMeasurement ? (
           <EmptyState message="No measurements logged yet." />
         ) : (
@@ -356,7 +536,7 @@ export default function ProgressPage() {
                     <div className={`text-xs font-semibold ${
                       isGood ? 'text-jj-forest dark:text-green-400' : 'text-jj-coral dark:text-red-400'
                     }`}>
-                      {changeText}
+                      {positive ? changeText : changeText}
                     </div>
                   )}
                 </div>
@@ -365,6 +545,140 @@ export default function ProgressPage() {
           </div>
         )}
       </div>
+
+      {/* ── Log Weight Modal ──────────────────────────────────────────────── */}
+      {showWeightModal && (
+        <Modal
+          title="Log Weight"
+          onClose={() => setShowWeightModal(false)}
+          onSave={saveWeight}
+          saveDisabled={weightInput === '' || isNaN(parseFloat(weightInput))}
+        >
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Weight (kg)</label>
+            <input
+              type="number"
+              step="0.1"
+              min="0"
+              value={weightInput}
+              onChange={(e) => setWeightInput(e.target.value)}
+              placeholder="e.g. 89.5"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-jj-blue"
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
+            <input
+              type="date"
+              value={weightDate}
+              onChange={(e) => setWeightDate(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-jj-blue"
+            />
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Log Biometrics Modal ──────────────────────────────────────────── */}
+      {showBioModal && (
+        <Modal
+          title="Log Biometrics"
+          onClose={() => setShowBioModal(false)}
+          onSave={saveBiometrics}
+          saveDisabled={bioBodyFat === '' && bioMuscleMass === ''}
+        >
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Body Fat (%)</label>
+            <input
+              type="number"
+              step="0.1"
+              min="0"
+              max="60"
+              value={bioBodyFat}
+              onChange={(e) => setBioBodyFat(e.target.value)}
+              placeholder="e.g. 18.5"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-jj-blue"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Muscle Mass (kg)</label>
+            <input
+              type="number"
+              step="0.1"
+              min="0"
+              value={bioMuscleMass}
+              onChange={(e) => setBioMuscleMass(e.target.value)}
+              placeholder="e.g. 72.0"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-jj-blue"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
+            <input
+              type="date"
+              value={bioDate}
+              onChange={(e) => setBioDate(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-jj-blue"
+            />
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Log Measurements Modal ────────────────────────────────────────── */}
+      {showMeasureModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md shadow-xl flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700 shrink-0">
+              <h2 className="font-semibold text-gray-900 dark:text-white">Log Measurements</h2>
+              <button onClick={() => setShowMeasureModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="px-6 py-5 space-y-3 overflow-y-auto">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
+                <input
+                  type="date"
+                  value={measureDate}
+                  onChange={(e) => setMeasureDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-jj-blue"
+                />
+              </div>
+              <p className="text-xs text-gray-400 dark:text-gray-500">Leave blank any measurements you don&apos;t have.</p>
+              {MEASUREMENT_FIELDS.map(({ key, label }) => (
+                <div key={key}>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{label} (cm)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={measureInputs[key] ?? ''}
+                    onChange={(e) => setMeasureInputs((prev) => ({ ...prev, [key]: e.target.value }))}
+                    placeholder="—"
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-jj-blue"
+                  />
+                </div>
+              ))}
+              {saveError && <p className="text-sm text-red-500">{saveError}</p>}
+            </div>
+            <div className="flex justify-end gap-3 px-6 pb-5 shrink-0">
+              <button
+                onClick={() => setShowMeasureModal(false)}
+                className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveMeasurements}
+                disabled={saving || !MEASUREMENT_FIELDS.some(({ key }) => (measureInputs[key] ?? '') !== '')}
+                className="px-5 py-2 text-sm font-semibold bg-jj-blue text-white rounded-lg hover:opacity-90 disabled:opacity-50"
+              >
+                {saving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

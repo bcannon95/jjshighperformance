@@ -3,59 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { Send, Search, Users, ArrowLeft } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/components/AuthProvider'
-
-// ── Push notification registration ────────────────────────────────────────────
-
-async function registerPush(clientId: number) {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
-  const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-  if (!vapidKey) return // not configured yet
-
-  try {
-    const reg = await navigator.serviceWorker.ready
-    let sub = await reg.pushManager.getSubscription()
-
-    if (!sub) {
-      // Request permission first
-      const permission = await Notification.requestPermission()
-      if (permission !== 'granted') return
-
-      sub = await reg.pushManager.subscribe({
-        userVisibleOnly:      true,
-        applicationServerKey: urlBase64ToUint8Array(vapidKey),
-      })
-    }
-
-    const key  = sub.getKey('p256dh')
-    const auth = sub.getKey('auth')
-    if (!key || !auth) return
-
-    const toBase64 = (buf: ArrayBuffer) =>
-      btoa(Array.from(new Uint8Array(buf)).map((b) => String.fromCharCode(b)).join(''))
-
-    // Upsert subscription — ignore conflicts (same endpoint already stored)
-    await supabase.from('push_subscriptions').upsert(
-      {
-        user_id:      clientId,
-        user_type:    'client',
-        endpoint:     sub.endpoint,
-        p256dh:       toBase64(key),
-        auth_key:     toBase64(auth),
-        push_enabled: true,
-      },
-      { onConflict: 'endpoint' }
-    )
-  } catch {
-    // Non-fatal — push just won't work on this device
-  }
-}
-
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
-  const base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
-  const raw     = atob(base64)
-  return Uint8Array.from({ length: raw.length }, (_, i) => raw.charCodeAt(i))
-}
+import { usePushNotifications } from '@/hooks/usePushNotifications'
 
 const PAGE_SIZE = 50
 
@@ -96,6 +44,7 @@ function formatTime(iso: string): string {
 
 export default function MessagesPage() {
   const { clientId, user } = useAuth()
+  usePushNotifications(clientId)
 
   const [conversations, setConversations]   = useState<ConversationView[]>([])
   const [selectedId, setSelectedId]         = useState<number | null>(null)
@@ -213,10 +162,6 @@ export default function MessagesPage() {
 
   useEffect(() => { loadConversations() }, [loadConversations])
 
-  // Register push subscription only if user has enabled it in account settings
-  useEffect(() => {
-    if (clientId && user?.user_metadata?.notification_push === true) registerPush(clientId)
-  }, [clientId, user])
 
   // ── Load messages + realtime for selected conversation ─────────────────────
   const loadMessages = useCallback(
