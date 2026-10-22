@@ -93,6 +93,10 @@ export default function Dashboard() {
   const [progressWidgets, setProgressWidgets] = useState(defaultProgressWidgets);
   const [showWidgetConfig, setShowWidgetConfig] = useState(false);
   const [draftWidgets, setDraftWidgets] = useState(defaultProgressWidgets);
+  const [showWeightModal, setShowWeightModal] = useState(false);
+  const [weightInput, setWeightInput] = useState('');
+  const [weightDate, setWeightDate] = useState(() => toDateStr(new Date()));
+  const [weightSaving, setWeightSaving] = useState(false);
 
   // Load latest body weight + earned badges on mount
   useEffect(() => {
@@ -471,6 +475,26 @@ export default function Dashboard() {
 
   const visibleTasks = tasks.filter((t) => t.date === selectedDate);
 
+  async function saveQuickWeight() {
+    const kg = parseFloat(weightInput);
+    if (!clientId || isNaN(kg) || kg <= 0) return;
+    setWeightSaving(true);
+    const { error } = await supabase.from('body_weight_logs').insert({
+      client_id: clientId,
+      weight_kg: kg,
+      logged_at: new Date(weightDate + 'T07:00:00').toISOString(),
+    });
+    setWeightSaving(false);
+    if (error) return;
+    const dateLabel = new Date(weightDate + 'T07:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+    setProgressWidgets((prev) =>
+      prev.map((w) => w.label === 'Body Weight' ? { ...w, value: kg, date: dateLabel } : w)
+    );
+    setShowWeightModal(false);
+    setWeightInput('');
+    setWeightDate(toDateStr(new Date()));
+  }
+
   return (
     <div className="p-3 sm:p-6 max-w-4xl mx-auto">
       {/* THINGS TO DO TODAY */}
@@ -621,13 +645,25 @@ export default function Dashboard() {
           {progressWidgets.filter((w) => !w.hidden).map((w) => (
             <div
               key={w.label}
-              className="border border-jj-grey/20 dark:border-gray-700 rounded-xl p-3"
+              className="border border-jj-grey/20 dark:border-gray-700 rounded-xl p-3 relative"
             >
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{w.label}</p>
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{w.label}</p>
+                {w.label === 'Body Weight' && (
+                  <button
+                    onClick={() => { setWeightInput(''); setWeightDate(toDateStr(new Date())); setShowWeightModal(true); }}
+                    className="text-jj-grey/50 hover:text-jj-blue transition-colors"
+                    aria-label="Log weight"
+                  >
+                    <Plus size={15} />
+                  </button>
+                )}
+              </div>
               {w.value !== null ? (
                 <div className="mt-2">
                   <span className="text-3xl font-bold text-gray-800 dark:text-white">{w.value}</span>
                   <span className="text-sm text-jj-grey dark:text-gray-500 ml-1">{w.unit}</span>
+                  {w.date && <p className="text-xs text-jj-grey/60 dark:text-gray-600 mt-0.5">{w.date}</p>}
                 </div>
               ) : (
                 <p className="text-jj-grey/40 dark:text-gray-700 text-xl mt-3">···</p>
@@ -746,6 +782,60 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+
+      {/* QUICK LOG WEIGHT MODAL */}
+      {showWeightModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowWeightModal(false)} />
+          <div className="relative w-full max-w-xs bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-gray-900 dark:text-white">Log Weight</h3>
+              <button onClick={() => setShowWeightModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Weight (kg)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={weightInput}
+                  onChange={(e) => setWeightInput(e.target.value)}
+                  placeholder="e.g. 89.5"
+                  autoFocus
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-jj-blue"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Date</label>
+                <input
+                  type="date"
+                  value={weightDate}
+                  onChange={(e) => setWeightDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-jj-blue"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 mt-5">
+              <button
+                onClick={() => setShowWeightModal(false)}
+                className="flex-1 py-2 text-sm text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveQuickWeight}
+                disabled={weightSaving || weightInput === '' || isNaN(parseFloat(weightInput))}
+                className="flex-1 py-2 text-sm font-semibold bg-jj-blue text-white rounded-lg disabled:opacity-50"
+              >
+                {weightSaving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ADD ACTIVITY MODAL */}
       {showModal && (
