@@ -95,7 +95,7 @@ function formatTime(iso: string): string {
 }
 
 export default function MessagesPage() {
-  const { clientId } = useAuth()
+  const { clientId, user } = useAuth()
 
   const [conversations, setConversations]   = useState<ConversationView[]>([])
   const [selectedId, setSelectedId]         = useState<number | null>(null)
@@ -213,10 +213,10 @@ export default function MessagesPage() {
 
   useEffect(() => { loadConversations() }, [loadConversations])
 
-  // Register push subscription once client ID is available
+  // Register push subscription only if user has enabled it in account settings
   useEffect(() => {
-    if (clientId) registerPush(clientId)
-  }, [clientId])
+    if (clientId && user?.user_metadata?.notification_push === true) registerPush(clientId)
+  }, [clientId, user])
 
   // ── Load messages + realtime for selected conversation ─────────────────────
   const loadMessages = useCallback(

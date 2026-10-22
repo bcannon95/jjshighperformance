@@ -200,6 +200,13 @@ export default function AccountPage() {
     setTimeout(() => setVideoSuccess(false), 3000);
   }
 
+  function urlBase64ToUint8Array(base64String: string): Uint8Array {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const raw     = atob(base64);
+    return Uint8Array.from({ length: raw.length }, (_, i) => raw.charCodeAt(i));
+  }
+
   async function subscribeToPush(): Promise<boolean> {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
       setPushStatus('unsupported');
@@ -213,11 +220,13 @@ export default function AccountPage() {
       return false;
     }
     try {
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!vapidKey) { setPushStatus('idle'); return false; }
       const reg = await navigator.serviceWorker.ready;
       const existing = await reg.pushManager.getSubscription();
       const sub = existing ?? await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+        applicationServerKey: urlBase64ToUint8Array(vapidKey),
       });
       const { endpoint, keys } = sub.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } };
       await supabase.from('push_subscriptions').upsert(
