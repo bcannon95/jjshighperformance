@@ -83,32 +83,76 @@ export default function TopBar() {
           </span>
           <ChevronDown size={16} className="text-gray-400" />
         </button>
+
         {showUser && (
-          <div className="absolute right-0 top-12 w-52 bg-white dark:bg-gray-800 border border-jj-grey/40 dark:border-gray-700 rounded-lg shadow-lg py-1 z-50">
-            <Link
-              href="/account"
+          <>
+            {/* Mobile: bottom sheet */}
+            <div
+              className="md:hidden fixed inset-0 z-50 bg-black/40"
               onClick={() => setShowUser(false)}
-              className="flex items-center gap-3 px-4 py-2.5 hover:bg-jj-neutral dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-200"
             >
-              <User size={16} /> My Account
-            </Link>
-            {isTrainer && (
+              <div
+                className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-2xl shadow-xl py-2"
+                style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)' }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4" />
+                <div className="px-2 pb-2 text-sm font-medium text-gray-500 dark:text-gray-400 px-4">
+                  {displayName}
+                </div>
+                <Link
+                  href="/account"
+                  onClick={() => setShowUser(false)}
+                  className="flex items-center gap-3 px-4 py-3.5 hover:bg-jj-neutral dark:hover:bg-gray-700 text-base text-gray-700 dark:text-gray-200"
+                >
+                  <User size={18} /> My Account
+                </Link>
+                {isTrainer && (
+                  <Link
+                    href="/admin"
+                    onClick={() => setShowUser(false)}
+                    className="flex items-center gap-3 px-4 py-3.5 hover:bg-jj-neutral dark:hover:bg-gray-700 text-base text-gray-700 dark:text-gray-200"
+                  >
+                    <LayoutDashboard size={18} /> Switch to Admin
+                  </Link>
+                )}
+                <hr className="my-2 border-jj-grey/40 dark:border-gray-700" />
+                <button
+                  onClick={signOut}
+                  className="flex items-center gap-3 px-4 py-3.5 hover:bg-jj-neutral dark:hover:bg-gray-700 text-base text-gray-700 dark:text-gray-200 w-full"
+                >
+                  <LogOut size={18} /> Sign Out
+                </button>
+              </div>
+            </div>
+
+            {/* Desktop: dropdown */}
+            <div className="hidden md:block absolute right-0 top-12 w-52 bg-white dark:bg-gray-800 border border-jj-grey/40 dark:border-gray-700 rounded-lg shadow-lg py-1 z-50">
               <Link
-                href="/admin"
+                href="/account"
                 onClick={() => setShowUser(false)}
                 className="flex items-center gap-3 px-4 py-2.5 hover:bg-jj-neutral dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-200"
               >
-                <LayoutDashboard size={16} /> Switch to Admin
+                <User size={16} /> My Account
               </Link>
-            )}
-            <hr className="my-1 border-jj-grey/40 dark:border-gray-700" />
-            <button
-              onClick={signOut}
-              className="flex items-center gap-3 px-4 py-2.5 hover:bg-jj-neutral dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-200 w-full"
-            >
-              <LogOut size={16} /> Sign Out
-            </button>
-          </div>
+              {isTrainer && (
+                <Link
+                  href="/admin"
+                  onClick={() => setShowUser(false)}
+                  className="flex items-center gap-3 px-4 py-2.5 hover:bg-jj-neutral dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-200"
+                >
+                  <LayoutDashboard size={16} /> Switch to Admin
+                </Link>
+              )}
+              <hr className="my-1 border-jj-grey/40 dark:border-gray-700" />
+              <button
+                onClick={signOut}
+                className="flex items-center gap-3 px-4 py-2.5 hover:bg-jj-neutral dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-200 w-full"
+              >
+                <LogOut size={16} /> Sign Out
+              </button>
+            </div>
+          </>
         )}
       </div>
     </div>
