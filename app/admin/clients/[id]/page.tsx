@@ -1,5 +1,10 @@
 'use client';
 
+// Required for Next.js static export (output: export).
+// In Capacitor the page is always reached via client-side navigation so no
+// paths need to be pre-rendered at build time.
+export function generateStaticParams() { return [] }
+
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
