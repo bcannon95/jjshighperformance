@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { MapPin, Square, ChevronRight, Activity, ChevronDown, Map } from 'lucide-react'
+import { Geolocation, type Position } from '@capacitor/geolocation'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/components/AuthProvider'
 
@@ -129,7 +130,7 @@ export default function RunsPage() {
 
   // Refs — avoid stale closures in GPS callbacks
   const startTimeRef    = useRef<Date | null>(null)
-  const watchIdRef      = useRef<number | null>(null)
+  const watchIdRef      = useRef<string | null>(null)
   const timerRef        = useRef<ReturnType<typeof setInterval> | null>(null)
   const lastPointRef    = useRef<RunPoint | null>(null)
   const distanceMRef    = useRef(0)
@@ -177,7 +178,10 @@ export default function RunsPage() {
 
   useEffect(() => {
     return () => {
-      if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current)
+      if (watchIdRef.current !== null) {
+        Geolocation.clearWatch({ id: watchIdRef.current })
+        watchIdRef.current = null
+      }
       if (timerRef.current) clearInterval(timerRef.current)
     }
   }, [])
@@ -187,8 +191,8 @@ export default function RunsPage() {
   // GPS glitches. Dropping points at 50 m caused time gaps that inflated pace
   // by ~90 s/km in moderate conditions (bridges, buildings, cloud cover).
 
-  const handleGpsPosition = useCallback((pos: GeolocationPosition) => {
-    const accuracy = pos.coords.accuracy
+  const handleGpsPosition = useCallback((pos: Position) => {
+    const accuracy = pos.coords.accuracy ?? 999
     setGpsAccuracy(Math.round(accuracy))
 
     // Skip truly poor fixes — 100 m still filters satellite noise
@@ -243,11 +247,13 @@ export default function RunsPage() {
       if (modeRef.current !== 'running') return
       setBgWarning(true)
       if (watchIdRef.current === null) {
-        watchIdRef.current = navigator.geolocation.watchPosition(
-          handleGpsPosition,
-          (err) => setGpsError(`GPS: ${err.message}`),
+        Geolocation.watchPosition(
           { enableHighAccuracy: true, timeout: 15000, maximumAge: 3000 },
-        )
+          (position, err) => {
+            if (err) { setGpsError(`GPS: ${err.message ?? 'error'}`); return }
+            if (position) handleGpsPosition(position)
+          }
+        ).then((id) => { watchIdRef.current = id }).catch(() => {})
       }
     }
     document.addEventListener('visibilitychange', onVisibility)
@@ -256,11 +262,16 @@ export default function RunsPage() {
 
   // ── Start run ─────────────────────────────────────────────────────────────
 
-  function startRun() {
-    if (!navigator.geolocation) {
-      setGpsError('GPS is not available on this device.')
-      return
-    }
+  async function startRun() {
+    // Request permission on native (iOS/Android). On web this throws — the
+    // browser will prompt automatically when watchPosition is called instead.
+    try {
+      const { location } = await Geolocation.requestPermissions()
+      if (location === 'denied') {
+        setGpsError('Location permission denied. Enable it in Settings.')
+        return
+      }
+    } catch { /* web — ignore */ }
     setGpsError(null)
     setSaveError(null)
     setBgWarning(false)
@@ -294,11 +305,17 @@ export default function RunsPage() {
       elapsedRef.current = s
     }, 1000)
 
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      handleGpsPosition,
-      (err) => setGpsError(`GPS: ${err.message}`),
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 3000 },
-    )
+    try {
+      watchIdRef.current = await Geolocation.watchPosition(
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 3000 },
+        (position, err) => {
+          if (err) { setGpsError(`GPS: ${err.message ?? 'error'}`); return }
+          if (position) handleGpsPosition(position)
+        }
+      )
+    } catch (err: any) {
+      setGpsError(`GPS: ${err.message ?? 'Could not start location tracking'}`)
+    }
   }
 
   // ── Stop run ──────────────────────────────────────────────────────────────
@@ -313,7 +330,7 @@ export default function RunsPage() {
     }
 
     if (watchIdRef.current !== null) {
-      navigator.geolocation.clearWatch(watchIdRef.current)
+      await Geolocation.clearWatch({ id: watchIdRef.current })
       watchIdRef.current = null
     }
     if (timerRef.current) {

@@ -9,6 +9,7 @@ type AuthContextType = {
   session: Session | null;
   user: User | null;
   clientId: number | null;
+  isTrainer: boolean;
   loading: boolean;
   signOut: () => Promise<void>;
 };
@@ -17,6 +18,7 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   user: null,
   clientId: null,
+  isTrainer: false,
   loading: true,
   signOut: async () => {},
 });
@@ -34,9 +36,19 @@ async function fetchClientId(userId: string): Promise<number | null> {
   return data?.id ?? null;
 }
 
+async function fetchIsTrainer(userId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('trainers')
+    .select('id')
+    .eq('auth_user_id', userId)
+    .maybeSingle();
+  return !!data;
+}
+
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [clientId, setClientId] = useState<number | null>(null);
+  const [isTrainer, setIsTrainer] = useState(false);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
@@ -58,8 +70,12 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
           setSession(session);
           if (session) {
             try {
-              const cid = await fetchClientId(session.user.id);
+              const [cid, trainer] = await Promise.all([
+                fetchClientId(session.user.id),
+                fetchIsTrainer(session.user.id),
+              ]);
               setClientId(cid);
+              setIsTrainer(trainer);
             } catch (err) {
               console.error('Failed to fetch client ID:', err);
             }
@@ -75,14 +91,19 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
-        if (!session) { setClientId(null); return; }
+        if (!session) { setClientId(null); setIsTrainer(false); return; }
         // Defer the Supabase query so the callback stays synchronous.
         // Awaiting inside onAuthStateChange deadlocks: the callback waits on
         // fetchClientId → getSession → auth startup → callback. setTimeout(0)
         // breaks that cycle by letting auth finish before the query runs.
         setTimeout(async () => {
           try {
-            setClientId(await fetchClientId(session.user.id));
+            const [cid, trainer] = await Promise.all([
+              fetchClientId(session.user.id),
+              fetchIsTrainer(session.user.id),
+            ]);
+            setClientId(cid);
+            setIsTrainer(trainer);
           } catch (e) {
             console.error('Failed to fetch client ID:', e);
           }
@@ -118,7 +139,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
   return (
     <AuthContext.Provider
-      value={{ session, user: session?.user ?? null, clientId, loading, signOut }}
+      value={{ session, user: session?.user ?? null, clientId, isTrainer, loading, signOut }}
     >
       {children}
     </AuthContext.Provider>

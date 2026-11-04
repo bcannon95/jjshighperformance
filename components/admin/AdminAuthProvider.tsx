@@ -21,6 +21,7 @@ type Trainer = {
 type AdminAuthContextType = {
   session: Session | null;
   trainer: Trainer | null;
+  isClient: boolean;
   loading: boolean;
   signOut: () => Promise<void>;
 };
@@ -28,12 +29,22 @@ type AdminAuthContextType = {
 const AdminAuthContext = createContext<AdminAuthContextType>({
   session: null,
   trainer: null,
+  isClient: false,
   loading: true,
   signOut: async () => {},
 });
 
 export function useAdminAuth() {
   return useContext(AdminAuthContext);
+}
+
+async function fetchIsClient(userId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('clients')
+    .select('id')
+    .eq('auth_user_id', userId)
+    .maybeSingle();
+  return !!data;
 }
 
 async function fetchTrainer(userId: string): Promise<Trainer | null> {
@@ -53,6 +64,7 @@ async function fetchTrainer(userId: string): Promise<Trainer | null> {
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [trainer, setTrainer] = useState<Trainer | null>(null);
+  const [isClient, setIsClient] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -65,8 +77,14 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       setSession(data.session ?? null);
 
       if (data.session) {
-        const trainerRecord = await fetchTrainer(data.session.user.id);
-        if (isMounted) setTrainer(trainerRecord);
+        const [trainerRecord, clientFlag] = await Promise.all([
+          fetchTrainer(data.session.user.id),
+          fetchIsClient(data.session.user.id),
+        ]);
+        if (isMounted) {
+          setTrainer(trainerRecord);
+          setIsClient(clientFlag);
+        }
       }
 
       if (isMounted) setLoading(false);
@@ -92,14 +110,19 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
           // onAuthStateChange deadlocks via fetchTrainer → getSession → auth).
           setLoading(true);
           setTimeout(async () => {
-            const trainerRecord = await fetchTrainer(newSession.user.id);
+            const [trainerRecord, clientFlag] = await Promise.all([
+              fetchTrainer(newSession.user.id),
+              fetchIsClient(newSession.user.id),
+            ]);
             if (isMounted) {
               setTrainer(trainerRecord);
+              setIsClient(clientFlag);
               setLoading(false);
             }
           }, 0);
         } else {
           setTrainer(null);
+          setIsClient(false);
         }
       }
     );
@@ -114,11 +137,12 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
     setSession(null);
     setTrainer(null);
+    setIsClient(false);
     window.location.href = '/admin/login';
   }
 
   return (
-    <AdminAuthContext.Provider value={{ session, trainer, loading, signOut }}>
+    <AdminAuthContext.Provider value={{ session, trainer, isClient, loading, signOut }}>
       {children}
     </AdminAuthContext.Provider>
   );

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Sun, Moon, LogOut, ChevronDown, Menu } from 'lucide-react';
+import Link from 'next/link';
+import { Search, Sun, Moon, LogOut, ChevronDown, Menu, Smartphone } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import { useAdminAuth } from './AdminAuthProvider';
 
@@ -11,7 +12,7 @@ interface AdminTopBarProps {
 
 export function AdminTopBar({ onMenuOpen }: AdminTopBarProps) {
   const { theme, toggle } = useTheme();
-  const { trainer, signOut } = useAdminAuth();
+  const { trainer, isClient, signOut } = useAdminAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const initials = trainer
@@ -70,7 +71,18 @@ export function AdminTopBar({ onMenuOpen }: AdminTopBarProps) {
           </button>
 
           {menuOpen && (
-            <div className="absolute right-0 mt-2 w-44 rounded-lg border border-jj-grey/20 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg py-1 z-20">
+            <div className="absolute right-0 mt-2 w-48 rounded-lg border border-jj-grey/20 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg py-1 z-20">
+              {isClient && (
+                <Link
+                  href="/"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  <Smartphone size={16} />
+                  Switch to Client
+                </Link>
+              )}
+              {isClient && <hr className="my-1 border-jj-grey/20 dark:border-gray-700" />}
               <button
                 onClick={signOut}
                 className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800"

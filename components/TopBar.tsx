@@ -1,7 +1,7 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { Bell, ChevronDown, User, LogOut, Sun, Moon } from 'lucide-react';
+import { Bell, ChevronDown, User, LogOut, Sun, Moon, LayoutDashboard } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { useAuth } from './AuthProvider';
 
@@ -9,7 +9,7 @@ export default function TopBar() {
   const [showNotifs, setShowNotifs] = useState(false);
   const [showUser, setShowUser] = useState(false);
   const { theme, toggle } = useTheme();
-  const { user, signOut } = useAuth();
+  const { user, isTrainer, signOut } = useAuth();
   const notifsRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
 
@@ -92,6 +92,15 @@ export default function TopBar() {
             >
               <User size={16} /> My Account
             </Link>
+            {isTrainer && (
+              <Link
+                href="/admin"
+                onClick={() => setShowUser(false)}
+                className="flex items-center gap-3 px-4 py-2.5 hover:bg-jj-neutral dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-200"
+              >
+                <LayoutDashboard size={16} /> Switch to Admin
+              </Link>
+            )}
             <hr className="my-1 border-jj-grey/40 dark:border-gray-700" />
             <button
               onClick={signOut}
