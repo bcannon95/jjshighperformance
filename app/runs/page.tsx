@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import dynamic from 'next/dynamic'
-import { MapPin, Square, ChevronRight, Activity, ChevronDown, Map } from 'lucide-react'
+import { MapPin, Square, ChevronRight, Activity, ChevronDown, Map, Pause, Play } from 'lucide-react'
 import { Geolocation, type Position } from '@capacitor/geolocation'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/components/AuthProvider'
@@ -117,6 +117,7 @@ export default function RunsPage() {
   const [gpsAccuracy, setGpsAccuracy]   = useState<number | null>(null)
   const [gpsError, setGpsError]         = useState<string | null>(null)
   const [saving, setSaving]             = useState(false)
+  const [paused, setPaused]             = useState(false)
 
   // Selected history run (route view)
   const [selectedRunId, setSelectedRunId]           = useState<number | null>(null)
@@ -129,14 +130,16 @@ export default function RunsPage() {
   const [saveError, setSaveError]       = useState<string | null>(null)
 
   // Refs — avoid stale closures in GPS callbacks
-  const startTimeRef    = useRef<Date | null>(null)
-  const watchIdRef      = useRef<string | null>(null)
-  const timerRef        = useRef<ReturnType<typeof setInterval> | null>(null)
-  const lastPointRef    = useRef<RunPoint | null>(null)
-  const distanceMRef    = useRef(0)
-  const elapsedRef      = useRef(0)
-  const gpsStartTimeRef = useRef<Date | null>(null)  // first valid GPS lock — used for accurate pace
-  const modeRef         = useRef<'idle' | 'running' | 'summary'>('idle')
+  const startTimeRef       = useRef<Date | null>(null)
+  const watchIdRef         = useRef<string | null>(null)
+  const timerRef           = useRef<ReturnType<typeof setInterval> | null>(null)
+  const lastPointRef       = useRef<RunPoint | null>(null)
+  const distanceMRef       = useRef(0)
+  const elapsedRef         = useRef(0)
+  const gpsStartTimeRef    = useRef<Date | null>(null)
+  const modeRef            = useRef<'idle' | 'running' | 'summary'>('idle')
+  const pausedDurationRef  = useRef(0)   // total ms spent paused this run
+  const pauseStartRef      = useRef<Date | null>(null) // when the current pause began
   // Synchronous mirror of activePoints — avoids stale-state on save
   const allPointsRef    = useRef<RunPoint[]>([])
 
@@ -279,11 +282,14 @@ export default function RunsPage() {
     setActivePoints([])
     setDistanceM(0)
     setElapsed(0)
-    lastPointRef.current    = null
-    distanceMRef.current    = 0
-    elapsedRef.current      = 0
-    gpsStartTimeRef.current = null
-    allPointsRef.current    = []
+    lastPointRef.current      = null
+    distanceMRef.current      = 0
+    elapsedRef.current        = 0
+    gpsStartTimeRef.current   = null
+    allPointsRef.current      = []
+    pausedDurationRef.current = 0
+    pauseStartRef.current     = null
+    setPaused(false)
 
     try { localStorage.removeItem('jjs_active_run') } catch {}
 
@@ -300,7 +306,7 @@ export default function RunsPage() {
     }
 
     timerRef.current = setInterval(() => {
-      const s = Math.floor((Date.now() - start.getTime()) / 1000)
+      const s = Math.floor((Date.now() - start.getTime() - pausedDurationRef.current) / 1000)
       setElapsed(s)
       elapsedRef.current = s
     }, 1000)
@@ -316,6 +322,48 @@ export default function RunsPage() {
     } catch (err: any) {
       setGpsError(`GPS: ${err.message ?? 'Could not start location tracking'}`)
     }
+  }
+
+  // ── Pause run ─────────────────────────────────────────────────────────────
+
+  async function pauseRun() {
+    if (watchIdRef.current !== null) {
+      await Geolocation.clearWatch({ id: watchIdRef.current })
+      watchIdRef.current = null
+    }
+    if (timerRef.current) {
+      clearInterval(timerRef.current)
+      timerRef.current = null
+    }
+    pauseStartRef.current = new Date()
+    lastPointRef.current  = null  // prevent distance spike on resume
+    setPaused(true)
+  }
+
+  // ── Resume run ────────────────────────────────────────────────────────────
+
+  async function resumeRun() {
+    if (pauseStartRef.current) {
+      pausedDurationRef.current += Date.now() - pauseStartRef.current.getTime()
+      pauseStartRef.current = null
+    }
+    timerRef.current = setInterval(() => {
+      const s = Math.floor((Date.now() - startTimeRef.current!.getTime() - pausedDurationRef.current) / 1000)
+      setElapsed(s)
+      elapsedRef.current = s
+    }, 1000)
+    try {
+      watchIdRef.current = await Geolocation.watchPosition(
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 3000 },
+        (position, err) => {
+          if (err) { setGpsError(`GPS: ${err.message ?? 'error'}`); return }
+          if (position) handleGpsPosition(position)
+        }
+      )
+    } catch (err: any) {
+      setGpsError(`GPS: ${err.message ?? 'Could not resume tracking'}`)
+    }
+    setPaused(false)
   }
 
   // ── Stop run ──────────────────────────────────────────────────────────────
@@ -394,8 +442,11 @@ export default function RunsPage() {
       setDistanceM(0)
       setBgWarning(false)
       setMapOpen(false)
-      startTimeRef.current    = null
-      gpsStartTimeRef.current = null
+      setPaused(false)
+      startTimeRef.current      = null
+      gpsStartTimeRef.current   = null
+      pausedDurationRef.current = 0
+      pauseStartRef.current     = null
       await loadRuns()
     } catch (err: any) {
       console.error('Failed to save run:', err)
@@ -498,13 +549,11 @@ export default function RunsPage() {
 
   // ── Derived ───────────────────────────────────────────────────────────────
 
-  // Pace uses time from first GPS lock, not from Start press, to avoid
-  // inflating pace during the GPS acquisition window (can be 30–120 s).
-  const gpsElapsedS = gpsStartTimeRef.current
-    ? Math.floor((Date.now() - gpsStartTimeRef.current.getTime()) / 1000)
-    : 0
-  const paceSecPerKm =
-    gpsElapsedS > 0 && distanceM > 0 ? Math.round((gpsElapsedS / distanceM) * 1000) : null
+  // Pace uses elapsed (which excludes paused time). Only shown once distance
+  // is recorded, so the GPS acquisition window doesn't inflate it.
+  const paceSecPerKm = elapsed > 0 && distanceM > 0
+    ? Math.round((elapsed / distanceM) * 1000)
+    : null
 
   const mapCenter: [number, number] | null =
     activePoints.length > 0
@@ -555,7 +604,9 @@ export default function RunsPage() {
               </div>
             </div>
             <div className="flex justify-center mt-2">
-              {gpsError
+              {paused
+                ? <span className="text-[11px] text-yellow-300 font-semibold tracking-widest uppercase">Paused</span>
+                : gpsError
                 ? <span className="text-[11px] text-red-400">{gpsError}</span>
                 : <GpsAccuracyPill accuracy={gpsAccuracy} />}
             </div>
@@ -574,7 +625,7 @@ export default function RunsPage() {
           </div>
         )}
 
-        {/* Bottom controls — collapse + stop */}
+        {/* Bottom controls — collapse + stop + pause/resume */}
         <div
           className="absolute left-0 right-0 z-[1000] px-6 flex items-center justify-between"
           style={{ bottom: 'calc(env(safe-area-inset-bottom) + 24px)' }}
@@ -598,7 +649,12 @@ export default function RunsPage() {
             )}
           </button>
 
-          <div className="w-12" />
+          <button
+            onClick={paused ? resumeRun : pauseRun}
+            className="w-12 h-12 rounded-full bg-gray-900/85 backdrop-blur-md border border-white/10 flex items-center justify-center text-white shadow-lg"
+          >
+            {paused ? <Play size={20} fill="white" /> : <Pause size={20} fill="white" />}
+          </button>
         </div>
       </div>
     )
@@ -640,18 +696,33 @@ export default function RunsPage() {
 
           {gpsError && <p className="text-xs text-red-400 text-center mb-4">{gpsError}</p>}
 
-          <button
-            onClick={() => setMapOpen(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gray-800 hover:bg-gray-700 rounded-full text-sm text-gray-300 transition-colors mb-4"
-          >
-            <Map size={16} className="text-brand" />
-            Show Map
-          </button>
+          {paused ? (
+            <div className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-yellow-500/20 border border-yellow-500/40 mb-4">
+              <span className="w-2 h-2 rounded-full bg-yellow-400" />
+              <span className="text-yellow-300 text-xs font-semibold tracking-widest uppercase">Paused</span>
+            </div>
+          ) : (
+            <button
+              onClick={() => setMapOpen(true)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-gray-800 hover:bg-gray-700 rounded-full text-sm text-gray-300 transition-colors mb-4"
+            >
+              <Map size={16} className="text-brand" />
+              Show Map
+            </button>
+          )}
 
-          <GpsAccuracyPill accuracy={gpsAccuracy} />
+          {!paused && <GpsAccuracyPill accuracy={gpsAccuracy} />}
         </div>
 
-        <div className="flex justify-center" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 32px)' }}>
+        <div className="flex items-center justify-center gap-6" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 32px)' }}>
+          <button
+            onClick={paused ? resumeRun : pauseRun}
+            className="w-14 h-14 rounded-full bg-gray-700 hover:bg-gray-600 flex items-center justify-center shadow-lg transition-colors"
+          >
+            {paused
+              ? <Play size={22} fill="white" color="white" />
+              : <Pause size={22} fill="white" color="white" />}
+          </button>
           <button
             onClick={stopRun}
             disabled={saving}
