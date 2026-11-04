@@ -1,12 +1,6 @@
 'use client';
 
-// Required for Next.js static export (output: export).
-// In Capacitor the page is always reached via client-side navigation so no
-// paths need to be pre-rendered at build time.
-export function generateStaticParams() { return [] }
-
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Pencil, X, Check, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -43,10 +37,7 @@ type LocationOption = { id: number; name: string | null };
 
 const INPUT = 'w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand';
 
-export default function AdminClientDetailPage() {
-  const params = useParams<{ id: string }>();
-  const router = useRouter();
-
+export default function ClientDetailView({ clientId }: { clientId: string }) {
   const [client, setClient] = useState<ClientDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -70,7 +61,7 @@ export default function AdminClientDetailPage() {
     const { data } = await supabase
       .from('clients')
       .select('id, first_name, last_name, email, phone, status, account_type, date_of_birth, gender, last_signed_in, trainer_id, location_id, trainers(first_name, last_name), locations(name)')
-      .eq('id', params.id)
+      .eq('id', clientId)
       .maybeSingle();
     setClient((data as unknown as ClientDetail) ?? null);
     setLoading(false);
@@ -80,13 +71,13 @@ export default function AdminClientDetailPage() {
     const { data } = await supabase
       .from('client_programs')
       .select('id, program_id, status, is_main, assigned_at, programs(name, description)')
-      .eq('client_id', params.id)
+      .eq('client_id', clientId)
       .order('assigned_at', { ascending: false });
     setAssignedPrograms((data as unknown as AssignedProgram[]) ?? []);
   }
 
   useEffect(() => {
-    if (!params.id) return;
+    if (!clientId) return;
     loadClient();
     loadPrograms();
 
@@ -99,7 +90,7 @@ export default function AdminClientDetailPage() {
       setTrainers((trs as unknown as TrainerOption[]) ?? []);
       setLocations((locs as unknown as LocationOption[]) ?? []);
     });
-  }, [params.id]);
+  }, [clientId]);
 
   function startEditing() {
     if (!client) return;
@@ -122,7 +113,7 @@ export default function AdminClientDetailPage() {
   async function saveEdit() {
     setSaving(true);
     setSaveError(null);
-    const res = await fetch(`/api/admin/clients/${params.id}`, {
+    const res = await fetch(`/api/admin/clients/${clientId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(editForm),
@@ -142,7 +133,7 @@ export default function AdminClientDetailPage() {
     if (!selectedProgramId) return;
     setAssigning(true);
     setAssignError(null);
-    const res = await fetch(`/api/admin/clients/${params.id}/programs`, {
+    const res = await fetch(`/api/admin/clients/${clientId}/programs`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ program_id: parseInt(selectedProgramId), is_main: isMain }),
@@ -161,7 +152,7 @@ export default function AdminClientDetailPage() {
   }
 
   async function handleRemoveProgram(programId: number) {
-    await fetch(`/api/admin/clients/${params.id}/programs?program_id=${programId}`, { method: 'DELETE' });
+    await fetch(`/api/admin/clients/${clientId}/programs?program_id=${programId}`, { method: 'DELETE' });
     await loadPrograms();
   }
 
@@ -170,9 +161,9 @@ export default function AdminClientDetailPage() {
   if (!client) {
     return (
       <div>
-        <button onClick={() => router.push('/admin/clients')} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-brand mb-4">
+        <Link href="/admin/clients" className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-brand mb-4">
           <ArrowLeft size={16} /> Back to clients
-        </button>
+        </Link>
         <p className="text-sm text-gray-500 dark:text-gray-400">Client not found.</p>
       </div>
     );
@@ -293,8 +284,8 @@ export default function AdminClientDetailPage() {
         ) : (
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
             {[
-              ['Status', <span className={`capitalize font-medium ${client.status === 'active' ? 'text-green-600 dark:text-green-400' : 'text-gray-700 dark:text-gray-200'}`}>{client.status ?? '—'}</span>],
-              ['Account Type', <span className="capitalize text-gray-700 dark:text-gray-200">{client.account_type ?? '—'}</span>],
+              ['Status', <span key="status" className={`capitalize font-medium ${client.status === 'active' ? 'text-green-600 dark:text-green-400' : 'text-gray-700 dark:text-gray-200'}`}>{client.status ?? '—'}</span>],
+              ['Account Type', <span key="type" className="capitalize text-gray-700 dark:text-gray-200">{client.account_type ?? '—'}</span>],
               ['Phone', client.phone ?? '—'],
               ['Date of Birth', client.date_of_birth ? new Date(client.date_of_birth).toLocaleDateString() : '—'],
               ['Gender', client.gender ?? '—'],
