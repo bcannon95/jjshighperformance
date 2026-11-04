@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import dynamic from 'next/dynamic'
-import { MapPin, Square, ChevronRight, Activity, ChevronDown, Map, Pause, Play } from 'lucide-react'
+import { MapPin, Square, ChevronRight, Activity, ChevronDown, Map, Pause, Play, Trash2, X } from 'lucide-react'
 import { Geolocation, type Position } from '@capacitor/geolocation'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/components/AuthProvider'
@@ -118,6 +118,11 @@ export default function RunsPage() {
   const [gpsError, setGpsError]         = useState<string | null>(null)
   const [saving, setSaving]             = useState(false)
   const [paused, setPaused]             = useState(false)
+  const [confirmCancel, setConfirmCancel] = useState(false)
+
+  // History delete
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null)
+  const [deletingId, setDeletingId]           = useState<number | null>(null)
 
   // Selected history run (route view)
   const [selectedRunId, setSelectedRunId]           = useState<number | null>(null)
@@ -364,6 +369,60 @@ export default function RunsPage() {
       setGpsError(`GPS: ${err.message ?? 'Could not resume tracking'}`)
     }
     setPaused(false)
+  }
+
+  // ── Cancel run (discard, no save) ─────────────────────────────────────────
+
+  async function cancelRun() {
+    if (watchIdRef.current !== null) {
+      await Geolocation.clearWatch({ id: watchIdRef.current })
+      watchIdRef.current = null
+    }
+    if (timerRef.current) {
+      clearInterval(timerRef.current)
+      timerRef.current = null
+    }
+    try { localStorage.removeItem('jjs_active_run') } catch {}
+    setMode('idle')
+    setActivePoints([])
+    setElapsed(0)
+    setDistanceM(0)
+    setGpsAccuracy(null)
+    setGpsError(null)
+    setBgWarning(false)
+    setMapOpen(false)
+    setPaused(false)
+    setSaveError(null)
+    setConfirmCancel(false)
+    startTimeRef.current      = null
+    gpsStartTimeRef.current   = null
+    lastPointRef.current      = null
+    distanceMRef.current      = 0
+    elapsedRef.current        = 0
+    allPointsRef.current      = []
+    pausedDurationRef.current = 0
+    pauseStartRef.current     = null
+  }
+
+  // ── Delete a past run ──────────────────────────────────────────────────────
+
+  async function deleteRun(runId: number) {
+    setDeletingId(runId)
+    try {
+      // run_points cascade-deletes when the run is deleted
+      const { error } = await supabase.from('runs').delete().eq('id', runId)
+      if (error) throw error
+      setRuns((prev) => prev.filter((r) => r.id !== runId))
+      setConfirmDeleteId(null)
+      if (selectedRunId === runId) {
+        setSelectedRunId(null)
+        setSelectedRunPoints([])
+      }
+    } catch (err: any) {
+      console.error('Failed to delete run:', err)
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   // ── Stop run ──────────────────────────────────────────────────────────────
@@ -714,27 +773,55 @@ export default function RunsPage() {
           {!paused && <GpsAccuracyPill accuracy={gpsAccuracy} />}
         </div>
 
-        <div className="flex items-center justify-center gap-6" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 32px)' }}>
-          <button
-            onClick={paused ? resumeRun : pauseRun}
-            className="w-14 h-14 rounded-full bg-gray-700 hover:bg-gray-600 flex items-center justify-center shadow-lg transition-colors"
-          >
-            {paused
-              ? <Play size={22} fill="white" color="white" />
-              : <Pause size={22} fill="white" color="white" />}
-          </button>
-          <button
-            onClick={stopRun}
-            disabled={saving}
-            className="w-20 h-20 rounded-full bg-red-600 hover:bg-red-700 disabled:opacity-50 flex items-center justify-center shadow-xl transition-colors"
-          >
-            {saving ? (
-              <span className="text-white text-xs font-bold">Saving</span>
-            ) : (
-              <Square size={28} fill="white" color="white" />
-            )}
-          </button>
-        </div>
+        {confirmCancel ? (
+          <div className="flex flex-col items-center gap-3 pb-10" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)' }}>
+            <p className="text-sm text-gray-300">Discard this run?</p>
+            <div className="flex gap-3">
+              <button
+                onClick={cancelRun}
+                className="px-6 py-2.5 rounded-full bg-red-600 hover:bg-red-700 text-white text-sm font-semibold"
+              >
+                Discard
+              </button>
+              <button
+                onClick={() => setConfirmCancel(false)}
+                className="px-6 py-2.5 rounded-full bg-gray-700 hover:bg-gray-600 text-white text-sm"
+              >
+                Keep going
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-4" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)' }}>
+            <div className="flex items-center justify-center gap-6">
+              <button
+                onClick={paused ? resumeRun : pauseRun}
+                className="w-14 h-14 rounded-full bg-gray-700 hover:bg-gray-600 flex items-center justify-center shadow-lg transition-colors"
+              >
+                {paused
+                  ? <Play size={22} fill="white" color="white" />
+                  : <Pause size={22} fill="white" color="white" />}
+              </button>
+              <button
+                onClick={stopRun}
+                disabled={saving}
+                className="w-20 h-20 rounded-full bg-red-600 hover:bg-red-700 disabled:opacity-50 flex items-center justify-center shadow-xl transition-colors"
+              >
+                {saving ? (
+                  <span className="text-white text-xs font-bold">Saving</span>
+                ) : (
+                  <Square size={28} fill="white" color="white" />
+                )}
+              </button>
+            </div>
+            <button
+              onClick={() => setConfirmCancel(true)}
+              className="text-xs text-gray-500 hover:text-gray-400 underline underline-offset-2"
+            >
+              Cancel run
+            </button>
+          </div>
+        )}
       </div>
     )
   }
@@ -868,42 +955,75 @@ export default function RunsPage() {
       ) : (
         <div className="space-y-3">
           {runs.map((run) => {
-            const isExpanded = selectedRunId === run.id
+            const isExpanded      = selectedRunId === run.id
+            const isConfirmDelete = confirmDeleteId === run.id
+            const isDeleting      = deletingId === run.id
             return (
               <div
                 key={run.id}
                 className="bg-white dark:bg-gray-800 rounded-xl border border-jj-grey/20 dark:border-gray-700 overflow-hidden"
               >
-                <button
-                  onClick={() => toggleRunRoute(run.id)}
-                  className="w-full flex items-center gap-4 p-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                >
-                  <div className="w-10 h-10 rounded-full bg-brand/10 dark:bg-brand/20 flex items-center justify-center shrink-0">
-                    <Activity size={18} className="text-brand" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-sm text-gray-900 dark:text-white">
-                      {formatDate(run.started_at)}
+                {isConfirmDelete ? (
+                  <div className="flex items-center justify-between gap-4 px-4 py-3">
+                    <p className="text-sm text-gray-700 dark:text-gray-300">Delete this run?</p>
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        onClick={() => deleteRun(run.id)}
+                        disabled={isDeleting}
+                        className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold disabled:opacity-50"
+                      >
+                        {isDeleting ? 'Deleting…' : 'Delete'}
+                      </button>
+                      <button
+                        onClick={() => setConfirmDeleteId(null)}
+                        disabled={isDeleting}
+                        className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs"
+                      >
+                        Cancel
+                      </button>
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 flex flex-wrap gap-x-2 mt-0.5">
-                      <span>{fmtDistance(run.distance_m)}</span>
-                      <span>·</span>
-                      <span>{fmtDuration(run.duration_s)}</span>
-                      {run.avg_pace_s_per_km && (
-                        <>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-4 p-4">
+                    <button
+                      onClick={() => toggleRunRoute(run.id)}
+                      className="flex items-center gap-4 flex-1 min-w-0 text-left"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-brand/10 dark:bg-brand/20 flex items-center justify-center shrink-0">
+                        <Activity size={18} className="text-brand" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-sm text-gray-900 dark:text-white">
+                          {formatDate(run.started_at)}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 flex flex-wrap gap-x-2 mt-0.5">
+                          <span>{fmtDistance(run.distance_m)}</span>
                           <span>·</span>
-                          <span>{fmtPace(run.avg_pace_s_per_km)}/km</span>
-                        </>
-                      )}
-                    </div>
+                          <span>{fmtDuration(run.duration_s)}</span>
+                          {run.avg_pace_s_per_km && (
+                            <>
+                              <span>·</span>
+                              <span>{fmtPace(run.avg_pace_s_per_km)}/km</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <ChevronRight
+                        size={18}
+                        className={`text-gray-400 shrink-0 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                      />
+                    </button>
+                    <button
+                      onClick={() => setConfirmDeleteId(run.id)}
+                      className="p-2 text-gray-400 hover:text-red-500 dark:hover:text-red-400 shrink-0 transition-colors"
+                      aria-label="Delete run"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
-                  <ChevronRight
-                    size={18}
-                    className={`text-gray-400 shrink-0 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
-                  />
-                </button>
+                )}
 
-                {isExpanded && (
+                {!isConfirmDelete && isExpanded && (
                   <div className="h-64 border-t border-jj-grey/20 dark:border-gray-700">
                     {loadingPoints ? (
                       <div className="h-full flex items-center justify-center text-sm text-gray-400">
