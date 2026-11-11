@@ -506,10 +506,10 @@ export default function Dashboard() {
           <div className="flex items-center gap-2 text-jj-blue">
             <button
               onClick={openModal}
-              className="hover:text-jj-blue/70 p-1 rounded transition-colors"
+              className="hover:text-jj-blue/70 p-2.5 rounded transition-colors"
               aria-label="Add activity"
             >
-              <Plus size={16} />
+              <Plus size={18} />
             </button>
 
             {/* Jump to today */}
@@ -846,7 +846,7 @@ export default function Dashboard() {
 
       {/* ADD ACTIVITY MODAL */}
       {showModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4">
           {/* backdrop */}
           <div
             className="absolute inset-0 bg-black/40"
@@ -854,7 +854,7 @@ export default function Dashboard() {
           />
           <div
             ref={modalRef}
-            className="relative w-full max-w-2xl bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-jj-grey/20 dark:border-gray-700 overflow-hidden"
+            className="relative w-full sm:max-w-2xl bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl shadow-xl border border-jj-grey/20 dark:border-gray-700 overflow-hidden max-h-[92vh] flex flex-col"
           >
             {/* header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-jj-grey/15 dark:border-gray-700">
@@ -903,9 +903,9 @@ export default function Dashboard() {
             </div>
 
             {/* body: left types / right panel */}
-            <div className="flex" style={{ minHeight: '320px' }}>
+            <div className="flex flex-col sm:flex-row flex-1 overflow-hidden">
               {/* left: multi-select type list */}
-              <div className="w-52 border-r border-jj-grey/15 dark:border-gray-700 py-2 shrink-0">
+              <div className="flex sm:flex-col w-full sm:w-52 border-b sm:border-b-0 sm:border-r border-jj-grey/15 dark:border-gray-700 overflow-x-auto sm:overflow-x-visible sm:py-2 shrink-0">
                 {ADD_OPTIONS.map((option) => {
                   const Icon = option.icon;
                   const checked = selectedTypes.includes(option.id);
@@ -914,7 +914,7 @@ export default function Dashboard() {
                     <button
                       key={option.id}
                       onClick={() => toggleType(option.id)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${active ? 'bg-jj-neutral dark:bg-gray-800' : 'hover:bg-jj-neutral/60 dark:hover:bg-gray-800/60'
+                      className={`flex shrink-0 items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 text-left transition-colors ${active ? 'bg-jj-neutral dark:bg-gray-800' : 'hover:bg-jj-neutral/60 dark:hover:bg-gray-800/60'
                         }`}
                     >
                       <span
@@ -933,7 +933,7 @@ export default function Dashboard() {
               </div>
 
               {/* right: active type panel */}
-              <div className="flex-1 p-5">
+              <div className="flex-1 p-5 overflow-y-auto">
                 {/* WORKOUT */}
                 {activePanel === 'workout' && (
                   <div>
