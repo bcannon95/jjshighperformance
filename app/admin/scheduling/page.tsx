@@ -151,24 +151,27 @@ export default function SchedulingPage() {
       </div>
 
       <div className="rounded-xl border border-jj-grey/20 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-gray-100 dark:bg-gray-800 text-left text-gray-500 dark:text-gray-400">
             <tr>
               <th className="px-4 py-3 font-medium">Date</th>
               <th className="px-4 py-3 font-medium">Client</th>
-              <th className="px-4 py-3 font-medium">Type</th>
-              <th className="px-4 py-3 font-medium">Workout</th>
+              <th className="px-4 py-3 font-medium hidden sm:table-cell">Type</th>
+              <th className="px-4 py-3 font-medium hidden md:table-cell">Workout</th>
               <th className="px-4 py-3 font-medium">Status</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-jj-grey/10 dark:divide-gray-800">
-            {loading && (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-                  Loading schedule...
-                </td>
+            {loading && [1,2,3,4].map(i => (
+              <tr key={i}>
+                <td className="px-4 py-3"><div className="h-4 bg-gray-100 dark:bg-gray-800 rounded animate-pulse w-24" /></td>
+                <td className="px-4 py-3"><div className="h-4 bg-gray-100 dark:bg-gray-800 rounded animate-pulse w-28" /></td>
+                <td className="px-4 py-3 hidden sm:table-cell"><div className="h-4 bg-gray-100 dark:bg-gray-800 rounded animate-pulse w-16" /></td>
+                <td className="px-4 py-3 hidden md:table-cell"><div className="h-4 bg-gray-100 dark:bg-gray-800 rounded animate-pulse w-32" /></td>
+                <td className="px-4 py-3"><div className="h-5 bg-gray-100 dark:bg-gray-800 rounded-full animate-pulse w-20" /></td>
               </tr>
-            )}
+            ))}
 
             {!loading && filteredEvents.length === 0 && (
               <tr>
@@ -183,9 +186,9 @@ export default function SchedulingPage() {
                 <tr key={event.id} className="hover:bg-jj-neutral/50 dark:hover:bg-gray-800/50">
                   <td className="px-4 py-3 text-gray-900 dark:text-gray-100 whitespace-nowrap">{formatDate(event.scheduled_date)}</td>
                   <td className="px-4 py-3 text-gray-900 dark:text-gray-100">{clientNames.get(event.client_id) || 'Unknown client'}</td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-gray-300 capitalize">{event.event_type || String.fromCharCode(8212)}</td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
-                    {event.workout_def_id !== null ? workoutNames.get(event.workout_def_id) || 'Unknown workout' : String.fromCharCode(8212)}
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-300 capitalize hidden sm:table-cell">{event.event_type || '—'}</td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-300 hidden md:table-cell">
+                    {event.workout_def_id !== null ? workoutNames.get(event.workout_def_id) || 'Unknown workout' : '—'}
                   </td>
                   <td className="px-4 py-3">
                     <span className={statusBadgeClass(event.status)}>{event.status || 'unknown'}</span>
@@ -194,6 +197,7 @@ export default function SchedulingPage() {
               ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       

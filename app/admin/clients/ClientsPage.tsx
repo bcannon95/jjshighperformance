@@ -150,8 +150,8 @@ export default function ClientsPage() {
         </button>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <div className="flex gap-1 rounded-lg bg-gray-100 dark:bg-gray-800 p-1">
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        <div className="flex gap-1 rounded-lg bg-gray-100 dark:bg-gray-800 p-1 shrink-0">
           {statusTabs.map((tab) => (
             <button
               key={tab.value}
@@ -171,55 +171,65 @@ export default function ClientsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search clients..."
-          className="rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
+          className="flex-1 min-w-[180px] rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
         />
       </div>
 
       <div className="rounded-xl border border-jj-grey/20 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-100 dark:bg-gray-800 text-left text-gray-500 dark:text-gray-400">
-            <tr>
-              <th className="px-4 py-3 font-medium">Name</th>
-              <th className="px-4 py-3 font-medium">Email</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Access</th>
-              <th className="px-4 py-3 font-medium">Trainer</th>
-              <th className="px-4 py-3 font-medium">Last Signed In</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-jj-grey/10 dark:divide-gray-800">
-            {!loading && filteredClients.map((client) => (
-              <tr key={client.id} className="hover:bg-jj-neutral/50 dark:hover:bg-gray-800/50">
-                <td className="px-4 py-3">
-                  <Link href={`/admin/clients?id=${client.id}`} className="font-medium text-gray-900 dark:text-white hover:text-brand">
-                    {client.first_name} {client.last_name}
-                  </Link>
-                </td>
-                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{client.email}</td>
-                <td className="px-4 py-3">
-                  <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${
-                    client.status === 'active'
-                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                      : client.status === 'pending'
-                      ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-                  }`}>
-                    {client.status ?? 'unknown'}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-gray-600 dark:text-gray-400 capitalize">{client.account_type ?? '—'}</td>
-                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
-                  {client.trainers ? `${client.trainers.first_name ?? ''} ${client.trainers.last_name ?? ''}` : '—'}
-                </td>
-                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
-                  {client.last_signed_in ? new Date(client.last_signed_in).toLocaleDateString() : '—'}
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-100 dark:bg-gray-800 text-left text-gray-500 dark:text-gray-400">
+              <tr>
+                <th className="px-4 py-3 font-medium">Name</th>
+                <th className="px-4 py-3 font-medium hidden sm:table-cell">Email</th>
+                <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium hidden md:table-cell">Access</th>
+                <th className="px-4 py-3 font-medium hidden md:table-cell">Trainer</th>
+                <th className="px-4 py-3 font-medium hidden lg:table-cell">Last Signed In</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-
-        {loading && <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">Loading clients...</div>}
+            </thead>
+            <tbody className="divide-y divide-jj-grey/10 dark:divide-gray-800">
+              {loading && [1,2,3,4,5].map(i => (
+                <tr key={i}>
+                  <td className="px-4 py-3"><div className="h-4 bg-gray-100 dark:bg-gray-800 rounded animate-pulse w-32" /></td>
+                  <td className="px-4 py-3 hidden sm:table-cell"><div className="h-4 bg-gray-100 dark:bg-gray-800 rounded animate-pulse w-40" /></td>
+                  <td className="px-4 py-3"><div className="h-5 bg-gray-100 dark:bg-gray-800 rounded-full animate-pulse w-16" /></td>
+                  <td className="px-4 py-3 hidden md:table-cell"><div className="h-4 bg-gray-100 dark:bg-gray-800 rounded animate-pulse w-20" /></td>
+                  <td className="px-4 py-3 hidden md:table-cell"><div className="h-4 bg-gray-100 dark:bg-gray-800 rounded animate-pulse w-24" /></td>
+                  <td className="px-4 py-3 hidden lg:table-cell"><div className="h-4 bg-gray-100 dark:bg-gray-800 rounded animate-pulse w-20" /></td>
+                </tr>
+              ))}
+              {!loading && filteredClients.map((client) => (
+                <tr key={client.id} className="hover:bg-jj-neutral/50 dark:hover:bg-gray-800/50">
+                  <td className="px-4 py-3">
+                    <Link href={`/admin/clients?id=${client.id}`} className="font-medium text-gray-900 dark:text-white hover:text-brand">
+                      {client.first_name} {client.last_name}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400 hidden sm:table-cell">{client.email}</td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${
+                      client.status === 'active'
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                        : client.status === 'pending'
+                        ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                    }`}>
+                      {client.status ?? 'unknown'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400 capitalize hidden md:table-cell">{client.account_type ?? '—'}</td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400 hidden md:table-cell">
+                    {client.trainers ? `${client.trainers.first_name ?? ''} ${client.trainers.last_name ?? ''}` : '—'}
+                  </td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400 hidden lg:table-cell">
+                    {client.last_signed_in ? new Date(client.last_signed_in).toLocaleDateString() : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         {!loading && filteredClients.length === 0 && <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">No clients found.</div>}
       </div>
 

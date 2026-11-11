@@ -145,6 +145,7 @@ export default function AdminTeamPage() {
       </div>
 
       <div className="rounded-xl border border-jj-grey/20 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-gray-100 dark:bg-gray-800 text-left text-gray-500 dark:text-gray-400">
             <tr>
@@ -156,6 +157,23 @@ export default function AdminTeamPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-jj-grey/10 dark:divide-gray-800">
+            {loading && [1,2,3].map(i => (
+              <tr key={i}>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 animate-pulse shrink-0" />
+                    <div className="space-y-1.5">
+                      <div className="h-3.5 bg-gray-100 dark:bg-gray-800 rounded animate-pulse w-28" />
+                      <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded animate-pulse w-36" />
+                    </div>
+                  </div>
+                </td>
+                <td className="px-4 py-3"><div className="h-4 bg-gray-100 dark:bg-gray-800 rounded animate-pulse w-16" /></td>
+                <td className="px-4 py-3 hidden sm:table-cell"><div className="h-4 bg-gray-100 dark:bg-gray-800 rounded animate-pulse w-20" /></td>
+                <td className="px-4 py-3 hidden sm:table-cell"><div className="h-4 bg-gray-100 dark:bg-gray-800 rounded animate-pulse w-24" /></td>
+                <td className="px-4 py-3 hidden sm:table-cell"><div className="h-4 bg-gray-100 dark:bg-gray-800 rounded animate-pulse w-8" /></td>
+              </tr>
+            ))}
             {!loading && filteredTrainers.map((trainer) => {
               const stats = trainerStats.get(trainer.id);
               const initials = `${trainer.first_name?.[0] ?? ''}${trainer.last_name?.[0] ?? ''}`.toUpperCase();
@@ -193,12 +211,8 @@ export default function AdminTeamPage() {
             })}
           </tbody>
         </table>
+        </div>
 
-        {loading && (
-          <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-            Loading team...
-          </div>
-        )}
         {!loading && filteredTrainers.length === 0 && (
           <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
             No team members found.

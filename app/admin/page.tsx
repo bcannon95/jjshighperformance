@@ -27,20 +27,19 @@ export default function AdminOverviewPage() {
         { count: totalClients },
         { count: activeClients },
         { count: totalPrograms },
+        { count: unreadMessages },
       ] = await Promise.all([
         supabase.from('clients').select('id', { count: 'exact', head: true }),
-        supabase
-          .from('clients')
-          .select('id', { count: 'exact', head: true })
-          .eq('status', 'active'),
+        supabase.from('clients').select('id', { count: 'exact', head: true }).eq('status', 'active'),
         supabase.from('programs').select('id', { count: 'exact', head: true }),
+        supabase.from('messages').select('id', { count: 'exact', head: true }).eq('read_at', null).eq('sender_type', 'client'),
       ]);
 
       setStats({
         totalClients: totalClients ?? 0,
         activeClients: activeClients ?? 0,
         totalPrograms: totalPrograms ?? 0,
-        unreadMessages: 0,
+        unreadMessages: unreadMessages ?? 0,
       });
     }
 
@@ -66,20 +65,20 @@ export default function AdminOverviewPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {cards.map((card) => {
           const Icon = card.icon;
+          const isLoading = card.value === null;
           return (
             <div
               key={card.label}
               className="rounded-xl border border-jj-grey/20 dark:border-gray-700 bg-white dark:bg-gray-900 p-5"
             >
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  {card.label}
-                </span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">{card.label}</span>
                 <Icon size={18} className="text-brand" />
               </div>
-              <span className="text-2xl font-semibold text-gray-900 dark:text-white">
-                {card.value ?? '—'}
-              </span>
+              {isLoading
+                ? <div className="h-8 w-16 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
+                : <span className="text-2xl font-semibold text-gray-900 dark:text-white">{card.value}</span>
+              }
             </div>
           );
         })}
