@@ -206,7 +206,23 @@ export default function MealPlanPage() {
   if (loading) {
     return (
       <div className="p-8">
-        <p className="text-gray-500 dark:text-gray-400">Loading meal plan...</p>
+        <div className="h-8 w-40 bg-gray-200 dark:bg-gray-800 rounded animate-pulse mb-6" />
+        <div className="flex gap-2 mb-6">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-9 w-16 bg-gray-200 dark:bg-gray-800 rounded animate-pulse" />
+          ))}
+        </div>
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex items-center gap-4 bg-white dark:bg-gray-800 rounded-xl px-5 py-4">
+              <div className="w-14 h-14 rounded-lg bg-gray-200 dark:bg-gray-700 animate-pulse shrink-0" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                <div className="h-3 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -229,7 +245,7 @@ export default function MealPlanPage() {
       </h1>
 
       {days.length > 0 && (
-        <div className="flex gap-2 mb-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex gap-2 mb-6 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
           {days.map((d) => (
             <button
               key={d.id}
@@ -266,7 +282,17 @@ export default function MealPlanPage() {
       )}
 
       {mealsLoading ? (
-        <p className="text-gray-500 dark:text-gray-400">Loading meals...</p>
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex items-center gap-4 bg-white dark:bg-gray-800 rounded-xl px-5 py-4">
+              <div className="w-14 h-14 rounded-lg bg-gray-200 dark:bg-gray-700 animate-pulse shrink-0" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                <div className="h-3 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : meals.length === 0 ? (
         <p className="text-gray-500 dark:text-gray-400">No meals have been added for this day yet.</p>
       ) : (
@@ -306,11 +332,14 @@ export default function MealPlanPage() {
                         <span className="text-xs text-gray-500 dark:text-gray-400">{recipe.serving_size}</span>
                       )}
                     </div>
-                    <div className="flex gap-4 text-[13px] text-gray-500 dark:text-gray-400 flex-shrink-0">
+                    <div className="hidden sm:flex gap-4 text-[13px] text-gray-500 dark:text-gray-400 flex-shrink-0">
                       <span className="font-semibold text-jj-orange">{recipe.calories ?? 0} kcal</span>
                       <span>P: {recipe.protein_g ?? 0}g</span>
                       <span>C: {recipe.carbs_g ?? 0}g</span>
                       <span>F: {recipe.fat_g ?? 0}g</span>
+                    </div>
+                    <div className="sm:hidden text-[12px] text-jj-orange font-semibold flex-shrink-0">
+                      {recipe.calories ?? 0} kcal
                     </div>
                   </button>
                 ) : (
@@ -326,11 +355,11 @@ export default function MealPlanPage() {
 
       {(selectedRecipe || recipeLoading) && (
         <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 sm:p-4"
           onClick={() => setSelectedRecipe(null)}
         >
           <div
-            className="bg-white dark:bg-gray-900 rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto p-6 relative"
+            className="bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 relative"
             onClick={(e) => e.stopPropagation()}
           >
             <button

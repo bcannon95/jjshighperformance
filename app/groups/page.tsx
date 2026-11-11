@@ -87,8 +87,26 @@ export default function GroupsPage() {
 
   if (loading) {
     return (
-      <div className="p-8 bg-jj-neutral dark:bg-gray-950 min-h-full flex items-center justify-center">
-        <p className="text-gray-400">Loading groups...</p>
+      <div className="p-8 bg-jj-neutral dark:bg-gray-950 min-h-full">
+        <div className="h-10 w-32 bg-gray-200 dark:bg-gray-800 rounded animate-pulse mb-2" />
+        <div className="h-4 w-56 bg-gray-200 dark:bg-gray-800 rounded animate-pulse mb-8" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-jj-grey/30 dark:border-gray-700">
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse" />
+                  <div className="space-y-1.5">
+                    <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                    <div className="h-3 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                  </div>
+                </div>
+                <div className="h-8 w-16 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse" />
+              </div>
+              <div className="h-3 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            </div>
+          ))}
+        </div>
       </div>
     )
   }
@@ -97,7 +115,7 @@ export default function GroupsPage() {
     <div className="p-8 bg-jj-neutral dark:bg-gray-950 min-h-full">
       <h1 className="font-heading text-4xl mb-2 text-gray-900 dark:text-white">Groups</h1>
       <p className="text-gray-500 dark:text-gray-400 mb-8">Connect with others on the same journey</p>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {groups.map(g => {
           const isJoined = joinedIds.has(g.id)
           const isToggling = toggling === g.id

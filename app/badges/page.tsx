@@ -55,8 +55,18 @@ export default function BadgesPage() {
 
   if (loading) {
     return (
-      <div className="p-8 bg-jj-neutral dark:bg-gray-950 min-h-full flex items-center justify-center">
-        <p className="text-gray-400">Loading badges...</p>
+      <div className="p-8 bg-jj-neutral dark:bg-gray-950 min-h-full">
+        <div className="h-10 w-32 bg-gray-200 dark:bg-gray-800 rounded animate-pulse mb-2" />
+        <div className="h-4 w-48 bg-gray-200 dark:bg-gray-800 rounded animate-pulse mb-8" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center border border-jj-grey/30 dark:border-gray-700">
+              <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse mx-auto mb-3" />
+              <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mx-auto mb-2" />
+              <div className="h-3 w-28 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mx-auto" />
+            </div>
+          ))}
+        </div>
       </div>
     )
   }
@@ -71,7 +81,7 @@ export default function BadgesPage() {
       {earned.length > 0 && (
         <>
           <h2 className="font-heading text-2xl mb-4 text-gray-900 dark:text-white">Earned Badges</h2>
-          <div className="grid grid-cols-3 gap-4 mb-10">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-10">
             {earned.map(b => (
               <div
                 key={b.id}
@@ -94,7 +104,7 @@ export default function BadgesPage() {
       {locked.length === 0 ? (
         <p className="text-gray-400 dark:text-gray-500 italic">All badges earned!</p>
       ) : (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {locked.map(b => (
             <div
               key={b.id}

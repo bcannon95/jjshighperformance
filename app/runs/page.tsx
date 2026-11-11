@@ -947,7 +947,17 @@ export default function RunsPage() {
       <h2 className="font-heading text-2xl mb-4 text-gray-900 dark:text-white">History</h2>
 
       {loadingRuns ? (
-        <p className="text-sm text-gray-400 dark:text-gray-600">Loading runs…</p>
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-xl border border-jj-grey/20 dark:border-gray-700 p-4 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse shrink-0" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 w-28 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                <div className="h-3 w-40 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : runs.length === 0 ? (
         <p className="text-sm text-gray-400 dark:text-gray-600">
           No runs yet. Hit Start to record your first one!

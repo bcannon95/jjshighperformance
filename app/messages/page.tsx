@@ -289,7 +289,17 @@ export default function MessagesPage() {
 
         <div className="overflow-y-auto flex-1">
           {loadingConvs ? (
-            <p className="text-sm text-gray-400 dark:text-gray-600 text-center py-8">Loading…</p>
+            <div className="divide-y divide-jj-grey/20 dark:divide-gray-800">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-start gap-3 px-4 py-3.5">
+                  <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-800 animate-pulse shrink-0" />
+                  <div className="flex-1 space-y-2 pt-1">
+                    <div className="h-3.5 bg-gray-200 dark:bg-gray-800 rounded animate-pulse w-32" />
+                    <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded animate-pulse w-48" />
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : filtered.length === 0 ? (
             <p className="text-sm text-gray-400 dark:text-gray-600 text-center py-8 px-4">
               {search ? 'No results.' : 'No conversations yet.'}
@@ -377,7 +387,13 @@ export default function MessagesPage() {
           {/* Message list */}
           <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-3">
             {loadingMsgs && messages.length === 0 ? (
-              <p className="text-sm text-gray-400 dark:text-gray-600 text-center">Loading…</p>
+              <div className="flex flex-col gap-3 pt-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`h-10 rounded-2xl bg-gray-200 dark:bg-gray-800 animate-pulse ${i % 2 === 0 ? 'w-40' : 'w-56'}`} />
+                  </div>
+                ))}
+              </div>
             ) : messages.length === 0 ? (
               <p className="text-sm text-gray-400 dark:text-gray-600 text-center mt-8">
                 No messages yet — say hello!
