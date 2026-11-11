@@ -6,9 +6,11 @@ import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import BottomNav from './BottomNav';
 import { usePathname, useRouter } from 'next/navigation';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
-  const { session, loading } = useAuth();
+  const { session, loading, clientId } = useAuth();
+  usePushNotifications(clientId);
   const pathname = usePathname();
   const router = useRouter();
 

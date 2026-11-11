@@ -3,7 +3,6 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { Send, Search, Users, ArrowLeft } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/components/AuthProvider'
-import { usePushNotifications } from '@/hooks/usePushNotifications'
 
 const PAGE_SIZE = 50
 
@@ -44,7 +43,6 @@ function formatTime(iso: string): string {
 
 export default function MessagesPage() {
   const { clientId, user } = useAuth()
-  usePushNotifications(clientId)
 
   const [conversations, setConversations]   = useState<ConversationView[]>([])
   const [selectedId, setSelectedId]         = useState<number | null>(null)
