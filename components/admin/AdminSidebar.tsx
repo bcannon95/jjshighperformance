@@ -43,7 +43,7 @@ export function AdminSidebar({ mobileOpen, onClose }: AdminSidebarProps) {
       <div className="h-16 flex items-center px-5 border-b border-white/10 shrink-0">
         <img src="https://file.trainerize.com/10545129/banner/3d751025-ae5f-47db-b979-3052d4489009" alt="JJ High Performance" className="h-10 w-auto object-contain" />
       </div>
-      <nav className="flex-1 py-4 space-y-1 overflow-y-auto">
+      <nav className="flex-1 py-4 px-2 space-y-0.5 overflow-y-auto">
         {navItems.map((item) => {
           const isActive =
             item.href === '/admin'
@@ -56,9 +56,9 @@ export function AdminSidebar({ mobileOpen, onClose }: AdminSidebarProps) {
               key={item.href}
               href={item.href}
               onClick={onClose}
-              className={`flex items-center gap-3 px-5 py-2.5 text-sm transition-colors ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
                 isActive
-                  ? 'bg-brand text-white'
+                  ? 'bg-brand text-gray-900 font-semibold'
                   : 'text-white/70 hover:bg-white/10 hover:text-white'
               }`}
             >
@@ -68,11 +68,11 @@ export function AdminSidebar({ mobileOpen, onClose }: AdminSidebarProps) {
           );
         })}
       </nav>
-      <div className="shrink-0 border-t border-white/10 p-3">
+      <div className="shrink-0 border-t border-white/10 p-2">
         <Link
           href="/"
           onClick={onClose}
-          className="flex items-center gap-3 px-4 py-2.5 text-sm text-white/60 hover:bg-white/10 hover:text-white rounded-lg transition-colors"
+          className="flex items-center gap-3 px-3 py-2.5 text-sm text-white/60 hover:bg-white/10 hover:text-white rounded-lg transition-colors"
         >
           <Smartphone size={16} />
           <span>Switch to App</span>
