@@ -5,7 +5,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import { AdminAuthProvider, useAdminAuth } from './AdminAuthProvider';
 import { AdminSidebar } from './AdminSidebar';
 import { AdminTopBar } from './AdminTopBar';
-import { AdminBottomNav } from './AdminBottomNav';
 
 function AdminShellInner({ children }: { children: React.ReactNode }) {
   const { session, trainer, loading, signOut } = useAdminAuth();
@@ -61,11 +60,8 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
       <AdminSidebar mobileOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
         <AdminTopBar onMenuOpen={() => setSidebarOpen(true)} />
-        <main className="flex-1 p-4 md:p-6 overflow-y-auto pb-20 md:pb-6">
-          {children}
-        </main>
+        <main className="flex-1 p-4 md:p-6 overflow-y-auto">{children}</main>
       </div>
-      <AdminBottomNav />
     </div>
   );
 }
