@@ -209,7 +209,8 @@ export default function AdminTeamPage() {
       {/* Invite modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-xl">
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 shadow-xl max-h-[90vh] overflow-y-auto">
+          <div className="p-6">
             {success ? (
               <div className="text-center py-4">
                 <div className="text-4xl mb-3">✓</div>
@@ -302,6 +303,7 @@ export default function AdminTeamPage() {
                 </form>
               </>
             )}
+          </div>
           </div>
         </div>
       )}

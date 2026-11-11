@@ -227,8 +227,8 @@ export default function ClientsPage() {
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowModal(false)} />
-          <div className="relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-2xl shadow-xl">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-jj-grey/10 dark:border-gray-700">
+          <div className="relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-jj-grey/10 dark:border-gray-700 shrink-0">
               <h2 className="text-base font-semibold text-gray-900 dark:text-white">Add New Client</h2>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-700 dark:hover:text-white">
                 <X size={20} />
@@ -236,7 +236,7 @@ export default function ClientsPage() {
             </div>
 
             {saveSuccess ? (
-              <div className="px-6 py-8 text-center">
+              <div className="px-6 py-8 text-center overflow-y-auto">
                 <p className="text-base font-semibold text-gray-900 dark:text-white mb-2">Client added!</p>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
                   An invitation email has been sent to <strong>{form.email}</strong> so they can set their password.
@@ -249,7 +249,7 @@ export default function ClientsPage() {
                 </button>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+              <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4 overflow-y-auto">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">First Name *</label>

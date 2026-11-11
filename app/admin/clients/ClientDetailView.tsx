@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Pencil, X, Check, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Pencil, X, Check, Plus, Trash2, Wrench } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import ProgramBuilder from './ProgramBuilder';
 
 type ClientDetail = {
   id: string;
@@ -44,6 +45,9 @@ export default function ClientDetailView({ clientId }: { clientId: string }) {
   const [editForm, setEditForm] = useState<Partial<ClientDetail>>({});
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Program builder state
+  const [builderProgram, setBuilderProgram] = useState<{ id: number; name: string } | null>(null);
 
   const [assignedPrograms, setAssignedPrograms] = useState<AssignedProgram[]>([]);
   const [programOptions, setProgramOptions] = useState<ProgramOption[]>([]);
@@ -171,6 +175,17 @@ export default function ClientDetailView({ clientId }: { clientId: string }) {
 
   const fullName = `${client.first_name ?? ''} ${client.last_name ?? ''}`.trim();
   const initials = `${client.first_name?.[0] ?? ''}${client.last_name?.[0] ?? ''}`.toUpperCase();
+
+  if (builderProgram) {
+    return (
+      <ProgramBuilder
+        clientProgramId={builderProgram.id}
+        programName={builderProgram.name}
+        clientName={fullName || 'Client'}
+        onBack={() => setBuilderProgram(null)}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -354,13 +369,22 @@ export default function ClientDetailView({ clientId }: { clientId: string }) {
                     {ap.status ?? 'active'} · Assigned {ap.assigned_at ? new Date(ap.assigned_at).toLocaleDateString() : '—'}
                   </p>
                 </div>
-                <button
-                  onClick={() => handleRemoveProgram(ap.program_id)}
-                  className="p-1.5 text-gray-300 hover:text-red-500 dark:hover:text-red-400 transition-colors"
-                  title="Remove program"
-                >
-                  <Trash2 size={15} />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setBuilderProgram({ id: ap.id, name: ap.programs?.name ?? 'Program' })}
+                    className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
+                    title="Build program content"
+                  >
+                    <Wrench size={12} /> Build
+                  </button>
+                  <button
+                    onClick={() => handleRemoveProgram(ap.program_id)}
+                    className="p-1.5 text-gray-300 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                    title="Remove program"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
               </div>
             ))}
           </div>

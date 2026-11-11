@@ -13,6 +13,7 @@ import {
   BarChart2,
   Building2,
   Receipt,
+  Smartphone,
   X,
 } from 'lucide-react';
 
@@ -67,6 +68,16 @@ export function AdminSidebar({ mobileOpen, onClose }: AdminSidebarProps) {
           );
         })}
       </nav>
+      <div className="shrink-0 border-t border-white/10 p-3">
+        <Link
+          href="/"
+          onClick={onClose}
+          className="flex items-center gap-3 px-4 py-2.5 text-sm text-white/60 hover:bg-white/10 hover:text-white rounded-lg transition-colors"
+        >
+          <Smartphone size={16} />
+          <span>Switch to App</span>
+        </Link>
+      </div>
     </>
   );
 

@@ -56,9 +56,9 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen bg-jj-neutral dark:bg-gray-950">
+    <div className="flex h-dvh bg-jj-neutral dark:bg-gray-950 overflow-hidden">
       <AdminSidebar mobileOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="flex flex-1 flex-col min-w-0">
+      <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
         <AdminTopBar onMenuOpen={() => setSidebarOpen(true)} />
         <main className="flex-1 p-4 md:p-6 overflow-y-auto">{children}</main>
       </div>
