@@ -31,7 +31,9 @@ export function AdminTopBar({ onMenuOpen }: AdminTopBarProps) {
     : '';
 
   return (
-    <header className="h-16 flex items-center justify-between gap-4 px-4 md:px-6 border-b border-jj-grey/20 dark:border-gray-700 bg-white dark:bg-gray-900">
+    <header className="border-b border-jj-grey/20 dark:border-gray-700 bg-white dark:bg-gray-900 shrink-0"
+            style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+    <div className="h-16 flex items-center justify-between gap-4 px-4 md:px-6">
       <div className="flex items-center gap-3">
         <button
           onClick={onMenuOpen}
@@ -94,6 +96,7 @@ export function AdminTopBar({ onMenuOpen }: AdminTopBarProps) {
           )}
         </div>
       </div>
+    </div>
     </header>
   );
 }
