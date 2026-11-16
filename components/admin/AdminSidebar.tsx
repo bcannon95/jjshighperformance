@@ -92,10 +92,11 @@ export function AdminSidebar({ mobileOpen, onClose }: AdminSidebarProps) {
       {mobileOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-          <aside className="relative flex w-64 flex-col bg-gray-900 text-white">
+          <aside className="relative flex w-64 flex-col bg-gray-900 text-white" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 text-white/60 hover:text-white"
+              className="absolute right-4 text-white/60 hover:text-white"
+              style={{ top: 'calc(env(safe-area-inset-top) + 1rem)' }}
               aria-label="Close menu"
             >
               <X size={20} />
