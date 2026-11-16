@@ -185,12 +185,14 @@ export default function RunsPage() {
     setStravaConnected(!!data)
   }, [clientId])
 
+  const VERCEL_BASE = 'https://jjshighperformance.vercel.app'
+
   async function syncStrava() {
     if (!clientId || stravaSyncing) return
     setStravaSyncing(true)
     setStravaError(null)
     try {
-      const res = await fetch('/api/strava/sync', {
+      const res = await fetch(`${VERCEL_BASE}/api/strava/sync`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clientId }),
@@ -207,7 +209,7 @@ export default function RunsPage() {
 
   async function disconnectStrava() {
     if (!clientId) return
-    await fetch('/api/strava/disconnect', {
+    await fetch(`${VERCEL_BASE}/api/strava/disconnect`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ clientId }),
