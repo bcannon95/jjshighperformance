@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import {
-  ArrowLeft, ChevronDown, ChevronRight, Plus, Trash2, Dumbbell, Clock, X,
+  ArrowLeft, ChevronDown, ChevronRight, Plus, Trash2, Dumbbell, Clock, X, AlertTriangle,
 } from 'lucide-react';
 
 // ── Types ───────────────────────────────────────────────────────────────────
@@ -89,6 +89,11 @@ export default function ProgramBuilder({
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Inline delete confirmations (avoids confirm() which blocks WKWebView)
+  const [confirmDeletePhaseId, setConfirmDeletePhaseId] = useState<number | null>(null);
+  const [confirmDeleteWorkoutId, setConfirmDeleteWorkoutId] = useState<{ phaseId: number; workoutId: number } | null>(null);
+  const [confirmDeleteExId, setConfirmDeleteExId] = useState<{ workoutId: number; exId: number } | null>(null);
+
   // ── Load phases on mount ─────────────────────────────────────────────────
 
   useEffect(() => {
@@ -158,11 +163,11 @@ export default function ProgramBuilder({
   }
 
   async function deletePhase(phaseId: number) {
-    if (!confirm('Delete this phase and all its workouts?')) return;
     await fetch(`/api/admin/phases/${phaseId}`, { method: 'DELETE' });
     setPhases((prev) => prev.filter((p) => p.id !== phaseId));
     setWorkoutsMap((prev) => { const m = new Map(prev); m.delete(phaseId); return m; });
     setExpandedPhases((prev) => { const s = new Set(prev); s.delete(phaseId); return s; });
+    setConfirmDeletePhaseId(null);
   }
 
   // ── Add workout ──────────────────────────────────────────────────────────
@@ -195,7 +200,6 @@ export default function ProgramBuilder({
   }
 
   async function deleteWorkout(phaseId: number, workoutId: number) {
-    if (!confirm('Delete this workout and all its exercises?')) return;
     await fetch(`/api/admin/workouts/${workoutId}`, { method: 'DELETE' });
     setWorkoutsMap((prev) => {
       const existing = prev.get(phaseId);
@@ -204,6 +208,7 @@ export default function ProgramBuilder({
     });
     setExpandedWorkouts((prev) => { const s = new Set(prev); s.delete(workoutId); return s; });
     setExercisesMap((prev) => { const m = new Map(prev); m.delete(workoutId); return m; });
+    setConfirmDeleteWorkoutId(null);
   }
 
   // ── Add exercise ─────────────────────────────────────────────────────────
@@ -268,6 +273,7 @@ export default function ProgramBuilder({
       if (!Array.isArray(existing)) return prev;
       return new Map(prev).set(workoutId, existing.filter((e) => e.id !== exId));
     });
+    setConfirmDeleteExId(null);
   }
 
   // ── Render ───────────────────────────────────────────────────────────────
@@ -379,13 +385,31 @@ export default function ProgramBuilder({
                     </span>
                   )}
                 </button>
-                <button
-                  onClick={() => deletePhase(phase.id)}
-                  className="p-1.5 text-gray-300 hover:text-red-500 dark:hover:text-red-400 transition-colors shrink-0"
-                  title="Delete phase"
-                >
-                  <Trash2 size={14} />
-                </button>
+                {confirmDeletePhaseId === phase.id ? (
+                  <div className="flex items-center gap-1 shrink-0">
+                    <span className="text-xs text-red-500 dark:text-red-400 mr-1">Delete phase?</span>
+                    <button
+                      onClick={() => deletePhase(phase.id)}
+                      className="px-2 py-1 text-xs font-medium bg-red-500 text-white rounded-md hover:bg-red-600"
+                    >
+                      Yes
+                    </button>
+                    <button
+                      onClick={() => setConfirmDeletePhaseId(null)}
+                      className="px-2 py-1 text-xs rounded-md border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300"
+                    >
+                      No
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmDeletePhaseId(phase.id)}
+                    className="p-2 text-gray-300 hover:text-red-500 dark:hover:text-red-400 transition-colors shrink-0"
+                    title="Delete phase"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                )}
               </div>
 
               {/* Workouts */}
@@ -437,13 +461,31 @@ export default function ProgramBuilder({
                               )}
                             </span>
                           </button>
-                          <button
-                            onClick={() => deleteWorkout(phase.id, workout.id)}
-                            className="p-1 text-gray-300 hover:text-red-500 dark:hover:text-red-400 transition-colors shrink-0"
-                            title="Delete workout"
-                          >
-                            <Trash2 size={13} />
-                          </button>
+                          {confirmDeleteWorkoutId?.workoutId === workout.id ? (
+                            <div className="flex items-center gap-1 shrink-0">
+                              <span className="text-xs text-red-500 dark:text-red-400 mr-1">Delete?</span>
+                              <button
+                                onClick={() => deleteWorkout(phase.id, workout.id)}
+                                className="px-2 py-1 text-xs font-medium bg-red-500 text-white rounded-md hover:bg-red-600"
+                              >
+                                Yes
+                              </button>
+                              <button
+                                onClick={() => setConfirmDeleteWorkoutId(null)}
+                                className="px-2 py-1 text-xs rounded-md border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300"
+                              >
+                                No
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setConfirmDeleteWorkoutId({ phaseId: phase.id, workoutId: workout.id })}
+                              className="p-2 text-gray-300 hover:text-red-500 dark:hover:text-red-400 transition-colors shrink-0"
+                              title="Delete workout"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
                         </div>
 
                         {/* Exercises */}
@@ -477,13 +519,30 @@ export default function ProgramBuilder({
                                   {ex.reps_max && ex.reps_max !== ex.reps_min ? `–${ex.reps_max}` : ''}
                                   {ex.rest_seconds ? ` · ${ex.rest_seconds}s` : ''}
                                 </span>
-                                <button
-                                  onClick={() => deleteExercise(workout.id, ex.id)}
-                                  className="p-1 text-gray-300 hover:text-red-500 dark:hover:text-red-400 transition-colors shrink-0"
-                                  title="Remove exercise"
-                                >
-                                  <X size={12} />
-                                </button>
+                                {confirmDeleteExId?.exId === ex.id ? (
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <button
+                                      onClick={() => deleteExercise(workout.id, ex.id)}
+                                      className="px-2 py-1 text-xs font-medium bg-red-500 text-white rounded-md hover:bg-red-600"
+                                    >
+                                      Remove
+                                    </button>
+                                    <button
+                                      onClick={() => setConfirmDeleteExId(null)}
+                                      className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-white"
+                                    >
+                                      <X size={13} />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => setConfirmDeleteExId({ workoutId: workout.id, exId: ex.id })}
+                                    className="p-2 text-gray-300 hover:text-red-500 dark:hover:text-red-400 transition-colors shrink-0"
+                                    title="Remove exercise"
+                                  >
+                                    <X size={14} />
+                                  </button>
+                                )}
                               </div>
                             ))}
 
@@ -524,7 +583,7 @@ export default function ProgramBuilder({
                                     </div>
                                   )}
                                 </div>
-                                <div className="grid grid-cols-4 gap-2">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                   <div>
                                     <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Sets</label>
                                     <input
@@ -583,9 +642,9 @@ export default function ProgramBuilder({
                             ) : (
                               <button
                                 onClick={() => openAddExercise(workout.id)}
-                                className="mt-2 flex items-center gap-1 text-xs text-brand hover:underline"
+                                className="mt-2 flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-brand border border-brand/30 rounded-lg hover:bg-brand/5 active:bg-brand/10"
                               >
-                                <Plus size={12} /> Add exercise
+                                <Plus size={13} /> Add exercise
                               </button>
                             )}
                           </div>
@@ -645,9 +704,9 @@ export default function ProgramBuilder({
                       <div className="px-4 pb-3 pt-2 border-t border-jj-grey/10 dark:border-gray-800">
                         <button
                           onClick={() => openAddWorkout(phase.id)}
-                          className="flex items-center gap-1 text-xs text-brand hover:underline"
+                          className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-brand border border-brand/30 rounded-lg hover:bg-brand/5 active:bg-brand/10"
                         >
-                          <Plus size={12} /> Add workout
+                          <Plus size={13} /> Add workout
                         </button>
                       </div>
                     )
