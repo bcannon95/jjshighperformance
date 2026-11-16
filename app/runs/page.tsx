@@ -26,6 +26,8 @@ type Run = {
   distance_m: number
   duration_s: number
   avg_pace_s_per_km: number | null
+  source: string | null
+  strava_activity_id: number | null
 }
 
 type SummaryData = {
@@ -120,6 +122,11 @@ export default function RunsPage() {
   const [paused, setPaused]             = useState(false)
   const [confirmCancel, setConfirmCancel] = useState(false)
 
+  // Strava
+  const [stravaConnected, setStravaConnected] = useState(false)
+  const [stravaSyncing, setStravaSyncing]     = useState(false)
+  const [stravaError, setStravaError]         = useState<string | null>(null)
+
   // History delete
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null)
   const [deletingId, setDeletingId]           = useState<number | null>(null)
@@ -159,16 +166,63 @@ export default function RunsPage() {
     setLoadingRuns(true)
     const { data } = await supabase
       .from('runs')
-      .select('id, started_at, finished_at, distance_m, duration_s, avg_pace_s_per_km')
+      .select('id, started_at, finished_at, distance_m, duration_s, avg_pace_s_per_km, source, strava_activity_id')
       .eq('client_id', clientId)
       .not('finished_at', 'is', null)
       .order('started_at', { ascending: false })
-      .limit(20)
+      .limit(50)
     setRuns(data ?? [])
     setLoadingRuns(false)
   }, [clientId])
 
+  const checkStravaConnection = useCallback(async () => {
+    if (!clientId) return
+    const { data } = await supabase
+      .from('strava_connections')
+      .select('id')
+      .eq('client_id', clientId)
+      .maybeSingle()
+    setStravaConnected(!!data)
+  }, [clientId])
+
+  async function syncStrava() {
+    if (!clientId || stravaSyncing) return
+    setStravaSyncing(true)
+    setStravaError(null)
+    try {
+      const res = await fetch('/api/strava/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error ?? 'Sync failed')
+      await loadRuns()
+    } catch (err: any) {
+      setStravaError(err.message ?? 'Sync failed')
+    } finally {
+      setStravaSyncing(false)
+    }
+  }
+
+  async function disconnectStrava() {
+    if (!clientId) return
+    await fetch('/api/strava/disconnect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId }),
+    })
+    setStravaConnected(false)
+  }
+
+  function connectStrava() {
+    const redirectUri = encodeURIComponent('https://jjshighperformance.vercel.app/api/strava/callback')
+    const url = `https://www.strava.com/oauth/authorize?client_id=297831&redirect_uri=${redirectUri}&response_type=code&scope=activity:read_all&state=${clientId}`
+    window.open(url, '_blank')
+  }
+
   useEffect(() => { loadRuns() }, [loadRuns])
+  useEffect(() => { checkStravaConnection() }, [checkStravaConnection])
 
   // ── Recover interrupted run from localStorage ─────────────────────────────
 
@@ -934,6 +988,46 @@ export default function RunsPage() {
         </p>
       )}
 
+      {/* Strava connection */}
+      <div className="mb-6 bg-white dark:bg-gray-800 rounded-xl border border-jj-grey/20 dark:border-gray-700 p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <svg viewBox="0 0 24 24" className="w-6 h-6 shrink-0" fill="#FC4C02"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
+            <div>
+              <p className="text-sm font-semibold text-gray-900 dark:text-white">Strava</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {stravaConnected ? 'Connected — sync to import your runs' : 'Connect to import runs from Strava'}
+              </p>
+            </div>
+          </div>
+          {stravaConnected ? (
+            <div className="flex gap-2 shrink-0">
+              <button
+                onClick={syncStrava}
+                disabled={stravaSyncing}
+                className="px-3 py-1.5 rounded-lg bg-brand text-gray-900 text-xs font-semibold disabled:opacity-50"
+              >
+                {stravaSyncing ? 'Syncing…' : 'Sync'}
+              </button>
+              <button
+                onClick={disconnectStrava}
+                className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-xs text-gray-600 dark:text-gray-400"
+              >
+                Disconnect
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={connectStrava}
+              className="px-3 py-1.5 rounded-lg bg-[#FC4C02] text-white text-xs font-semibold shrink-0"
+            >
+              Connect
+            </button>
+          )}
+        </div>
+        {stravaError && <p className="text-xs text-red-500 mt-2">{stravaError}</p>}
+      </div>
+
       {/* Start button */}
       <button
         onClick={startRun}
@@ -965,6 +1059,7 @@ export default function RunsPage() {
       ) : (
         <div className="space-y-3">
           {runs.map((run) => {
+            const isStrava        = run.source === 'strava'
             const isExpanded      = selectedRunId === run.id
             const isConfirmDelete = confirmDeleteId === run.id
             const isDeleting      = deletingId === run.id
@@ -996,11 +1091,15 @@ export default function RunsPage() {
                 ) : (
                   <div className="flex items-center gap-4 p-4">
                     <button
-                      onClick={() => toggleRunRoute(run.id)}
+                      onClick={() => !isStrava && toggleRunRoute(run.id)}
                       className="flex items-center gap-4 flex-1 min-w-0 text-left"
                     >
                       <div className="w-10 h-10 rounded-full bg-brand/10 dark:bg-brand/20 flex items-center justify-center shrink-0">
-                        <Activity size={18} className="text-brand" />
+                        {isStrava ? (
+                          <svg viewBox="0 0 24 24" className="w-5 h-5" fill="#FC4C02"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
+                        ) : (
+                          <Activity size={18} className="text-brand" />
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold text-sm text-gray-900 dark:text-white">
@@ -1018,10 +1117,14 @@ export default function RunsPage() {
                           )}
                         </div>
                       </div>
-                      <ChevronRight
-                        size={18}
-                        className={`text-gray-400 shrink-0 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
-                      />
+                      {isStrava ? (
+                        <span className="text-[10px] font-bold text-[#FC4C02] shrink-0 tracking-wide">STRAVA</span>
+                      ) : (
+                        <ChevronRight
+                          size={18}
+                          className={`text-gray-400 shrink-0 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                        />
+                      )}
                     </button>
                     <button
                       onClick={() => setConfirmDeleteId(run.id)}
