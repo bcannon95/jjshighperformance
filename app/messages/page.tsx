@@ -153,8 +153,6 @@ export default function MessagesPage() {
       })
 
     setConversations(views)
-    // Auto-select first conversation on initial load
-    setSelectedId((prev) => prev ?? (views[0]?.id ?? null))
     setLoadingConvs(false)
   }, [clientId])
 
