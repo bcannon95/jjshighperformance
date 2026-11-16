@@ -1,16 +1,25 @@
-import apn from 'apn';
+import apn from '@parse/node-apn';
 
 let provider: apn.Provider | null = null;
+
+function normaliseKey(raw: string): string {
+  const body = raw
+    .replace(/^["']|["']$/g, '')   // strip wrapping quotes
+    .replace(/\\n/g, '\n')          // unescape \n literals
+    .replace(/-----BEGIN PRIVATE KEY-----/g, '')
+    .replace(/-----END PRIVATE KEY-----/g, '')
+    .replace(/\s+/g, '');           // collapse all whitespace
+  const lines = body.match(/.{1,64}/g) ?? [];
+  return `-----BEGIN PRIVATE KEY-----\n${lines.join('\n')}\n-----END PRIVATE KEY-----\n`;
+}
 
 function getProvider(): apn.Provider {
   if (provider) return provider;
 
-  const key = (process.env.APNS_KEY ?? '').replace(/\\n/g, '\n');
-
   provider = new apn.Provider({
     token: {
-      key,
-      keyId: process.env.APNS_KEY_ID!,
+      key:    normaliseKey(process.env.APNS_KEY ?? ''),
+      keyId:  process.env.APNS_KEY_ID!,
       teamId: process.env.APNS_TEAM_ID!,
     },
     production: process.env.APNS_PRODUCTION !== 'false',
