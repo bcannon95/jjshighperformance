@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS });
+}
+
 const TOKEN_URL      = 'https://www.strava.com/oauth/token';
 const ACTIVITIES_URL = 'https://www.strava.com/api/v3/athlete/activities';
 
@@ -36,9 +46,13 @@ async function refreshIfNeeded(conn: {
   return data.access_token;
 }
 
+function json(body: object, status = 200) {
+  return NextResponse.json(body, { status, headers: CORS });
+}
+
 export async function POST(req: NextRequest) {
   const { clientId } = await req.json() as { clientId: number };
-  if (!clientId) return NextResponse.json({ error: 'clientId required' }, { status: 400 });
+  if (!clientId) return json({ error: 'clientId required' }, 400);
 
   const { data: conn, error: connErr } = await supabaseAdmin
     .from('strava_connections')
@@ -47,7 +61,7 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (connErr || !conn) {
-    return NextResponse.json({ error: 'Strava not connected' }, { status: 404 });
+    return json({ error: 'Strava not connected' }, 404);
   }
 
   const token = await refreshIfNeeded(conn);
@@ -59,13 +73,13 @@ export async function POST(req: NextRequest) {
   );
 
   if (!activitiesRes.ok) {
-    return NextResponse.json({ error: 'Failed to fetch Strava activities' }, { status: 502 });
+    return json({ error: 'Failed to fetch Strava activities' }, 502);
   }
 
   const activities = await activitiesRes.json();
   const runs = (activities as any[]).filter((a) => a.type === 'Run' || a.sport_type === 'Run');
 
-  if (runs.length === 0) return NextResponse.json({ synced: 0 });
+  if (runs.length === 0) return json({ synced: 0 });
 
   const rows = runs.map((a) => ({
     client_id:          clientId,
@@ -85,7 +99,7 @@ export async function POST(req: NextRequest) {
     .from('runs')
     .upsert(rows, { onConflict: 'strava_activity_id' });
 
-  if (upsertErr) return NextResponse.json({ error: upsertErr.message }, { status: 500 });
+  if (upsertErr) return json({ error: upsertErr.message }, 500);
 
-  return NextResponse.json({ synced: rows.length });
+  return json({ synced: rows.length });
 }
