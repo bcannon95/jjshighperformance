@@ -44,6 +44,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func applicationDidBecomeActive(_ application: UIApplication) {
+        // Clear app icon badge when user opens the app
+        UIApplication.shared.applicationIconBadgeNumber = 0
         resetWebViewZoom()
     }
 

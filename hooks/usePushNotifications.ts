@@ -6,22 +6,35 @@ import { supabase } from '@/lib/supabase';
 export function usePushNotifications(clientId: number | null) {
   const router = useRouter();
 
-  // Navigate when user taps a notification — runs regardless of auth state
+  // Navigate when user taps a notification; clear tray when app comes to foreground
   useEffect(() => {
-    let handle: { remove: () => void } | null = null;
+    let tapHandle: { remove: () => void } | null = null;
+    let visibilityCleanup: (() => void) | null = null;
 
-    async function setupTapListener() {
+    async function setupListeners() {
       const { Capacitor } = await import('@capacitor/core');
       if (!Capacitor.isNativePlatform()) return;
       const { PushNotifications } = await import('@capacitor/push-notifications');
-      handle = await PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+
+      tapHandle = await PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
         const url = action.notification.data?.url as string | undefined;
         if (url) router.push(url);
       });
+
+      function onVisibilityChange() {
+        if (document.visibilityState === 'visible') {
+          PushNotifications.removeAllDeliveredNotifications().catch(() => {});
+        }
+      }
+      document.addEventListener('visibilitychange', onVisibilityChange);
+      visibilityCleanup = () => document.removeEventListener('visibilitychange', onVisibilityChange);
     }
 
-    setupTapListener();
-    return () => { handle?.remove(); };
+    setupListeners();
+    return () => {
+      tapHandle?.remove();
+      visibilityCleanup?.();
+    };
   }, [router]);
 
   // Register device token when client is authenticated

@@ -56,15 +56,37 @@ export default function TopBar() {
           <Bell size={20} />
         </button>
         {showNotifs && (
-          <div className="absolute right-0 top-12 w-80 bg-white dark:bg-gray-800 border border-jj-grey/40 dark:border-gray-700 rounded-lg shadow-lg z-50">
-            <div className="px-4 py-3 border-b border-jj-grey/40 dark:border-gray-700">
-              <p className="text-sm font-semibold dark:text-white">Notifications</p>
+          <>
+            {/* Mobile: bottom sheet */}
+            <div
+              className="md:hidden fixed inset-0 z-50 bg-black/40"
+              onClick={() => setShowNotifs(false)}
+            >
+              <div
+                className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-2xl shadow-xl py-2"
+                style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)' }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mt-2 mb-4" />
+                <p className="text-sm font-semibold text-gray-900 dark:text-white px-4 mb-1">Notifications</p>
+                <div className="px-4 py-6 text-center">
+                  <Bell size={24} className="mx-auto text-gray-300 dark:text-gray-600 mb-2" />
+                  <p className="text-sm text-gray-400 dark:text-gray-500">No new notifications</p>
+                </div>
+              </div>
             </div>
-            <div className="px-4 py-8 text-center">
-              <Bell size={24} className="mx-auto text-gray-300 dark:text-gray-600 mb-2" />
-              <p className="text-sm text-gray-400 dark:text-gray-500">No new notifications</p>
+
+            {/* Desktop: fixed dropdown (escapes overflow-hidden parent) */}
+            <div className="hidden md:block fixed top-14 right-4 w-80 bg-white dark:bg-gray-800 border border-jj-grey/40 dark:border-gray-700 rounded-lg shadow-lg z-50">
+              <div className="px-4 py-3 border-b border-jj-grey/40 dark:border-gray-700">
+                <p className="text-sm font-semibold dark:text-white">Notifications</p>
+              </div>
+              <div className="px-4 py-8 text-center">
+                <Bell size={24} className="mx-auto text-gray-300 dark:text-gray-600 mb-2" />
+                <p className="text-sm text-gray-400 dark:text-gray-500">No new notifications</p>
+              </div>
             </div>
-          </div>
+          </>
         )}
       </div>
       <div className="relative" ref={userRef}>
