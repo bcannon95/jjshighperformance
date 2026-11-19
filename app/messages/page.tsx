@@ -271,7 +271,7 @@ export default function MessagesPage() {
     <div className="flex h-full overflow-hidden bg-jj-neutral dark:bg-gray-950">
 
       {/* ── Thread list — full width on mobile, fixed sidebar on desktop ── */}
-      <div className={`${selectedId ? 'hidden md:flex' : 'flex'} w-full md:w-72 bg-white dark:bg-gray-900 border-r border-jj-grey/40 dark:border-gray-700 flex-col shrink-0`}>
+      <div className={`${selectedId ? 'hidden md:flex' : 'flex'} w-full md:w-72 bg-white dark:bg-gray-900 border-r border-jj-grey/40 dark:border-gray-700 flex-col shrink-0 overflow-hidden`}>
         <div className="p-4 border-b border-jj-grey/40 dark:border-gray-700">
           <h2 className="font-heading text-2xl mb-3 text-gray-900 dark:text-white">Messages</h2>
           <div className="flex items-center gap-2 bg-jj-neutral dark:bg-gray-800 rounded-lg px-3 py-2">
@@ -285,7 +285,7 @@ export default function MessagesPage() {
           </div>
         </div>
 
-        <div className="overflow-y-auto flex-1">
+        <div className="overflow-y-auto flex-1 min-h-0">
           {loadingConvs ? (
             <div className="divide-y divide-jj-grey/20 dark:divide-gray-800">
               {[1, 2, 3].map((i) => (
@@ -383,7 +383,7 @@ export default function MessagesPage() {
           )}
 
           {/* Message list */}
-          <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-3">
+          <div className="flex-1 overflow-y-auto min-h-0 p-5 flex flex-col gap-3">
             {loadingMsgs && messages.length === 0 ? (
               <div className="flex flex-col gap-3 pt-4">
                 {[1, 2, 3].map((i) => (
