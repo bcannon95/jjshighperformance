@@ -75,7 +75,7 @@ export default function RootLayout({
           })();
         ` }} />
       </head>
-      <body className={`${bebasNeue.variable} ${rubik.variable} font-body bg-jj-neutral dark:bg-gray-950 overflow-x-hidden`}>
+      <body className={`${bebasNeue.variable} ${rubik.variable} font-body bg-jj-neutral dark:bg-gray-950 overflow-hidden`}>
         <ThemeProvider>
           <AuthProvider>
             <AppShell>{children}</AppShell>

@@ -268,7 +268,7 @@ export default function MessagesPage() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="flex h-full bg-jj-neutral dark:bg-gray-950">
+    <div className="flex h-full overflow-hidden bg-jj-neutral dark:bg-gray-950">
 
       {/* ── Thread list — full width on mobile, fixed sidebar on desktop ── */}
       <div className={`${selectedId ? 'hidden md:flex' : 'flex'} w-full md:w-72 bg-white dark:bg-gray-900 border-r border-jj-grey/40 dark:border-gray-700 flex-col shrink-0`}>

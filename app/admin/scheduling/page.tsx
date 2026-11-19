@@ -182,133 +182,121 @@ export default function SchedulingPage() {
         </button>
       </div>
 
-      {/* Create form */}
-      {createOpen && (
-        <form
-          onSubmit={handleCreate}
-          className="rounded-xl border border-brand/30 bg-brand/5 dark:bg-brand/10 p-4 space-y-3"
-        >
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-sm font-semibold text-gray-900 dark:text-white">New Session</p>
-            <button type="button" onClick={() => setCreateOpen(false)} className="p-1 text-gray-400 hover:text-gray-700 dark:hover:text-white">
-              <X size={16} />
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Client *</label>
-              <select
-                required
-                value={form.client_id}
-                onChange={(e) => setForm((f) => ({ ...f, client_id: e.target.value }))}
-                className={INPUT}
-                disabled={clientsLoading}
-              >
-                <option value="">{clientsLoading ? 'Loading…' : 'Select client'}</option>
-                {clients.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Date *</label>
-              <input
-                type="date"
-                required
-                value={form.date}
-                onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-                className={INPUT}
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Event type</label>
-              <select
-                value={form.event_type}
-                onChange={(e) => setForm((f) => ({ ...f, event_type: e.target.value }))}
-                className={INPUT}
-              >
-                {EVENT_TYPES.map((t) => (
-                  <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Notes</label>
-              <input
-                type="text"
-                placeholder="Optional"
-                value={form.notes}
-                onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-                className={INPUT}
-              />
-            </div>
-          </div>
-
-          {saveError && <p className="text-xs text-red-500">{saveError}</p>}
-
-          <div className="flex gap-2 pt-1">
-            <button
-              type="submit"
-              disabled={saving}
-              className="px-4 py-2 bg-brand text-gray-900 text-sm font-medium rounded-lg hover:opacity-90 disabled:opacity-50"
-            >
-              {saving ? 'Saving…' : 'Create Session'}
-            </button>
-            <button
-              type="button"
-              onClick={() => setCreateOpen(false)}
-              className="px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      )}
-
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <input
-          type="text"
-          placeholder="Search by client or type…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand w-full max-w-xs"
-        />
-
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
-        >
-          <option value="all">All statuses</option>
-          {statusOptions.map((s) => <option key={s} value={s}>{s}</option>)}
-        </select>
-
-        <div className="flex rounded-lg border border-gray-300 dark:border-gray-700 overflow-hidden">
-          {(['upcoming', 'past', 'all'] as TimeFilter[]).map((opt) => (
-            <button
-              key={opt}
-              onClick={() => setTimeFilter(opt)}
-              className={
-                'px-3 py-2 text-sm capitalize ' +
-                (timeFilter === opt
-                  ? 'bg-brand text-gray-900 font-medium'
-                  : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:bg-jj-neutral dark:hover:bg-gray-700')
-              }
-            >
-              {opt}
-            </button>
-          ))}
+      <div className="space-y-2">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="Search by client or type…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex-1 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
+          />
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
+          >
+            <option value="all">All statuses</option>
+            {statusOptions.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
         </div>
-
-        <span className="text-sm text-gray-500 dark:text-gray-400 ml-auto">
-          {filtered.length} event{filtered.length !== 1 ? 's' : ''}
-        </span>
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-lg border border-gray-300 dark:border-gray-700 overflow-hidden">
+            {(['upcoming', 'past', 'all'] as TimeFilter[]).map((opt) => (
+              <button
+                key={opt}
+                onClick={() => setTimeFilter(opt)}
+                className={
+                  'px-3 py-2 text-sm capitalize ' +
+                  (timeFilter === opt
+                    ? 'bg-brand text-gray-900 font-medium'
+                    : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:bg-jj-neutral dark:hover:bg-gray-700')
+                }
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+          <span className="text-sm text-gray-500 dark:text-gray-400 ml-auto">
+            {filtered.length} event{filtered.length !== 1 ? 's' : ''}
+          </span>
+        </div>
       </div>
+
+      {/* Create session modal */}
+      {createOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-xl">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Schedule Session</h2>
+              <button type="button" onClick={() => setCreateOpen(false)} className="text-gray-400 hover:text-gray-700 dark:hover:text-white">
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleCreate} className="space-y-4">
+              <div>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Client *</label>
+                <select
+                  required
+                  value={form.client_id}
+                  onChange={(e) => setForm((f) => ({ ...f, client_id: e.target.value }))}
+                  className={INPUT}
+                  disabled={clientsLoading}
+                >
+                  <option value="">{clientsLoading ? 'Loading…' : 'Select client'}</option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Date *</label>
+                <input
+                  type="date"
+                  required
+                  value={form.date}
+                  onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
+                  className={INPUT}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Event type</label>
+                <select
+                  value={form.event_type}
+                  onChange={(e) => setForm((f) => ({ ...f, event_type: e.target.value }))}
+                  className={INPUT}
+                >
+                  {EVENT_TYPES.map((t) => (
+                    <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Notes</label>
+                <input
+                  type="text"
+                  placeholder="Optional"
+                  value={form.notes}
+                  onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+                  className={INPUT}
+                />
+              </div>
+              {saveError && <p className="text-xs text-red-500">{saveError}</p>}
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={() => setCreateOpen(false)}
+                  className="rounded-lg border border-gray-300 dark:border-gray-700 px-4 py-2 text-sm text-gray-600 dark:text-gray-300">
+                  Cancel
+                </button>
+                <button type="submit" disabled={saving}
+                  className="px-4 py-2 bg-brand text-gray-900 text-sm font-medium rounded-lg hover:opacity-90 disabled:opacity-50">
+                  {saving ? 'Saving…' : 'Create Session'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Table */}
       <div className="rounded-xl border border-jj-grey/20 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden">

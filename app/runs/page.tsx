@@ -679,7 +679,7 @@ export default function RunsPage() {
 
   if (mode === 'running' && mapOpen) {
     return (
-      <div className="fixed inset-0 z-50 bg-gray-950">
+      <div className="fixed inset-0 z-[60] bg-gray-950">
         {bgWarning && (
           <div className="absolute top-0 inset-x-0 z-[1001] bg-yellow-500/20 border-b border-yellow-500/40 px-4 py-1.5 text-center">
             <span className="text-yellow-300 text-xs font-medium">

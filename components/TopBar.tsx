@@ -104,7 +104,7 @@ export default function TopBar() {
           <>
             {/* Mobile: bottom sheet */}
             <div
-              className="md:hidden fixed inset-0 z-50 bg-black/40"
+              className="md:hidden fixed inset-0 z-[60] bg-black/40"
               onClick={() => setShowNotifs(false)}
             >
               <div
@@ -155,7 +155,7 @@ export default function TopBar() {
           <>
             {/* Mobile: bottom sheet */}
             <div
-              className="md:hidden fixed inset-0 z-50 bg-black/40"
+              className="md:hidden fixed inset-0 z-[60] bg-black/40"
               onClick={() => setShowUser(false)}
             >
               <div

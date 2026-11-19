@@ -425,7 +425,7 @@ export default function ProgressPage() {
 
       {/* ── Log Weight Modal ──────────────────────────────────────────────── */}
       {showWeightModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4">
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/60 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-sm shadow-xl p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-semibold text-gray-900 dark:text-white">Log Weight</h2>
@@ -459,7 +459,7 @@ export default function ProgressPage() {
 
       {/* ── Log Biometrics Modal ──────────────────────────────────────────── */}
       {showBioModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4">
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/60 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-sm shadow-xl p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-semibold text-gray-900 dark:text-white">Log Biometrics</h2>
@@ -498,7 +498,7 @@ export default function ProgressPage() {
 
       {/* ── Log Measurements Modal ────────────────────────────────────────── */}
       {showMeasureModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4">
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/60 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-sm shadow-xl flex flex-col max-h-[85vh]">
             <div className="flex items-center justify-between px-6 pt-6 pb-4 shrink-0">
               <h2 className="font-semibold text-gray-900 dark:text-white">Log Measurements</h2>
